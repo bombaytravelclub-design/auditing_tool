@@ -135,9 +135,14 @@ const ReviewWorkspace = () => {
       <div className="container max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div>
-          <Button variant="ghost" onClick={() => navigate("/bulk-jobs")}>
-            ← Back to Bulk Jobs
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => navigate("/bulk-jobs")}>
+              ← Back to Bulk Jobs
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/")}>
+              Go to Proforma Audit
+            </Button>
+          </div>
           <div className="mt-4">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold">Review Workspace</h1>

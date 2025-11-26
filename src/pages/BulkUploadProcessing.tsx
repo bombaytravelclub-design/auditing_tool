@@ -112,34 +112,39 @@ const BulkUploadProcessing = () => {
 
             {/* Steps */}
             <div className="space-y-3">
-              {steps.map((step, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
-                      index < currentStep
-                        ? "border-success bg-success text-success-foreground"
-                        : index === currentStep
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background"
-                    }`}
-                  >
-                    {index < currentStep ? (
-                      <Check className="h-4 w-4" />
-                    ) : index === currentStep ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <span className="text-xs">{index + 1}</span>
-                    )}
+              {steps.map((step, index) => {
+                const isStepComplete = index < currentStep || (isComplete && index === currentStep);
+                const isStepInProgress = index === currentStep && !isComplete;
+                
+                return (
+                  <div key={index} className="flex items-center gap-3">
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                        isStepComplete
+                          ? "border-success bg-success text-success-foreground"
+                          : isStepInProgress
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background"
+                      }`}
+                    >
+                      {isStepComplete ? (
+                        <Check className="h-4 w-4" />
+                      ) : isStepInProgress ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <span className="text-xs">{index + 1}</span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm ${
+                        index <= currentStep ? "font-medium" : "text-muted-foreground"
+                      }`}
+                    >
+                      {step}
+                    </span>
                   </div>
-                  <span
-                    className={`text-sm ${
-                      index <= currentStep ? "font-medium" : "text-muted-foreground"
-                    }`}
-                  >
-                    {step}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Action */}

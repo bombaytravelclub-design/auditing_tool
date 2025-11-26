@@ -6,6 +6,7 @@ import { JourneyDetailsDrawer } from "@/components/JourneyDetailsDrawer";
 import { Button } from "@/components/ui/button";
 import { Journey } from "@/lib/mockData";
 import { fetchProformas, transformProformaToJourney, calculateSummaryStats, ApiProforma } from "@/lib/api";
+import { priorityApprovedJourneys, transformStaticJourneyData } from "@/lib/staticJourneyData";
 import { Upload, Calendar, Filter, Loader2, X } from "lucide-react";
 import {
   Select,
@@ -61,9 +62,17 @@ const Index = () => {
 
   // Transform API data to Journey format
   const allJourneys = useMemo(() => {
-    return proformas
+    const apiJourneys = proformas
       .map(transformProformaToJourney)
       .filter((j): j is Journey => j !== null);
+    
+    // Add static priority journeys at the top (only approved ones)
+    const staticJourneys = priorityApprovedJourneys
+      .filter(j => j.status === 'APPROVED') // Only include approved journeys
+      .map(transformStaticJourneyData);
+    
+    // Prepend static journeys to API data
+    return [...staticJourneys, ...apiJourneys];
   }, [proformas]);
 
   // Get unique transporters
