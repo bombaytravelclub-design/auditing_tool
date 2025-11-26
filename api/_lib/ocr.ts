@@ -1,16 +1,14 @@
-// GPT-4o OCR Helper for Document Extraction
+// Google Gemini OCR Helper for Document Extraction
 // Supports both POD and Invoice documents
 
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { PodOcrResult, InvoiceOcrResult } from '../../src/types/domain';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY environment variable');
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('Missing GEMINI_API_KEY environment variable');
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ============================================================================
 // POD DOCUMENT OCR
@@ -27,68 +25,73 @@ export async function extractPodMetadata(
   fileType: string
 ): Promise<PodOcrResult> {
   try {
-    // Convert buffer to base64
-    const base64File = fileBuffer.toString('base64');
-    const dataUrl = `data:${fileType};base64,${base64File}`;
+    // Use Gemini 2.0 Flash for OCR processing (faster, better quota)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // Prepare prompt for POD extraction
-    const prompt = `Extract the following information from this Proof of Delivery (POD) document:
+    const prompt = `Extract all relevant fields from this POD (Proof of Delivery) document.
 
-1. Journey Number / Trip ID / Consignment Number
-2. Vehicle Number / Registration Number
-3. Load ID / Shipment ID
-4. Any other identifying numbers
+Read only what is present—no assumptions.
 
-Return the data in this exact JSON format:
+If the document contains multiple materials, capture every row accurately.
+
+Return extracted data in a structured list of fields and values. No extra commentary.
+
+Return ONLY valid JSON in this exact format (no markdown, no code blocks):
 {
   "journeyNumber": "string or null",
   "vehicleNumber": "string or null",
   "loadId": "string or null",
-  "confidence": number between 0 and 1
-}
+  "charges": [
+    {"type": "string", "amount": number}
+  ],
+  "totalAmount": number or null,
+  "confidence": 0.8
+}`;
 
-Rules:
-- Extract all numbers/IDs accurately
-- If a field is not found, set it to null
-- Confidence should reflect how clear the data is (0.0 to 1.0)
-- Only return the JSON, no additional text`;
+    // Convert buffer to base64 for Gemini
+    const base64File = fileBuffer.toString('base64');
 
-    // Call GPT-4o with vision
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: dataUrl,
-              },
-            },
-          ],
+    // Call Gemini with vision
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64File,
+          mimeType: fileType,
         },
-      ],
-      max_tokens: 500,
-      temperature: 0.1, // Low temperature for consistent extraction
-    });
+      },
+    ]);
 
-    const content = response.choices[0]?.message?.content;
+    const response = await result.response;
+    const content = response.text();
+
     if (!content) {
-      throw new Error('No response from OpenAI');
+      throw new Error('No response from Gemini');
     }
 
-    // Parse JSON response
-    const cleanedContent = content.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    // Parse JSON response - Gemini may wrap in markdown
+    let cleanedContent = content.trim();
+    // Remove markdown code blocks if present
+    cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    // Remove any leading/trailing whitespace
+    cleanedContent = cleanedContent.trim();
+
     const parsed = JSON.parse(cleanedContent);
+
+    // Transform charges array to match expected format
+    const charges = parsed.charges && Array.isArray(parsed.charges) 
+      ? parsed.charges 
+      : [];
 
     return {
       journeyNumber: parsed.journeyNumber || undefined,
       vehicleNumber: parsed.vehicleNumber || undefined,
       loadId: parsed.loadId || undefined,
-      confidence: parsed.confidence || 0,
-      rawResponse: response,
+      charges: charges,
+      totalAmount: parsed.totalAmount || undefined,
+      confidence: parsed.confidence || 0.8, // Default confidence for Gemini
+      rawResponse: { content, parsed },
     };
   } catch (error: any) {
     console.error('POD OCR Error:', error);
@@ -114,25 +117,19 @@ export async function extractInvoiceMetadata(
   fileType: string
 ): Promise<InvoiceOcrResult> {
   try {
-    // Convert buffer to base64
-    const base64File = fileBuffer.toString('base64');
-    const dataUrl = `data:${fileType};base64,${base64File}`;
+    // Use Gemini Pro for OCR processing (supports vision via inline data)
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     // Prepare prompt for Invoice extraction
-    const prompt = `Extract the following financial information from this freight invoice document:
+    const prompt = `Extract all relevant fields from this freight INVOICE PDF.
 
-1. Invoice Number
-2. Invoice Date
-3. Vehicle Number / Registration Number
-4. Base Freight / Freight Charges
-5. Detention Charges
-6. Toll Charges
-7. Unloading Charges
-8. Other Charges / Miscellaneous
-9. GST Amount / Tax Amount
-10. Total Amount / Grand Total
+Read exactly what is present in the document. Do not assume or infer missing values.
 
-Return the data in this exact JSON format:
+Accurately capture table rows even if formatting is inconsistent. Preserve numbers as printed.
+
+Return the data in a clean and structured way with field names and values. No explanations.
+
+Return ONLY valid JSON in this exact format (no markdown, no code blocks):
 {
   "invoiceNumber": "string or null",
   "invoiceDate": "YYYY-MM-DD or null",
@@ -144,46 +141,46 @@ Return the data in this exact JSON format:
   "otherCharges": number or null,
   "gstAmount": number or null,
   "totalAmount": number or null,
-  "confidence": number between 0 and 1
-}
+  "charges": [
+    {"type": "string", "amount": number}
+  ],
+  "confidence": 0.8
+}`;
 
-Rules:
-- Extract all amounts as numbers (no currency symbols)
-- If a charge type is not present, set it to 0
-- If a field cannot be found, set it to null
-- Confidence should reflect how clear the data is (0.0 to 1.0)
-- Date format should be YYYY-MM-DD
-- Only return the JSON, no additional text`;
+    // Convert buffer to base64 for Gemini
+    const base64File = fileBuffer.toString('base64');
 
-    // Call GPT-4o with vision
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: dataUrl,
-              },
-            },
-          ],
+    // Call Gemini with vision
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64File,
+          mimeType: fileType,
         },
-      ],
-      max_tokens: 800,
-      temperature: 0.1, // Low temperature for consistent extraction
-    });
+      },
+    ]);
 
-    const content = response.choices[0]?.message?.content;
+    const response = await result.response;
+    const content = response.text();
+
     if (!content) {
-      throw new Error('No response from OpenAI');
+      throw new Error('No response from Gemini');
     }
 
-    // Parse JSON response
-    const cleanedContent = content.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    // Parse JSON response - Gemini may wrap in markdown
+    let cleanedContent = content.trim();
+    // Remove markdown code blocks if present
+    cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    // Remove any leading/trailing whitespace
+    cleanedContent = cleanedContent.trim();
+
     const parsed = JSON.parse(cleanedContent);
+
+    // Transform charges array to match expected format
+    const charges = parsed.charges && Array.isArray(parsed.charges) 
+      ? parsed.charges 
+      : [];
 
     return {
       invoiceNumber: parsed.invoiceNumber || undefined,
@@ -196,8 +193,9 @@ Rules:
       otherCharges: parsed.otherCharges || 0,
       gstAmount: parsed.gstAmount || undefined,
       totalAmount: parsed.totalAmount || undefined,
-      confidence: parsed.confidence || 0,
-      rawResponse: response,
+      charges: charges,
+      confidence: parsed.confidence || 0.8, // Default confidence for Gemini
+      rawResponse: { content, parsed },
     };
   } catch (error: any) {
     console.error('Invoice OCR Error:', error);
@@ -369,4 +367,3 @@ export function matchInvoiceWithProforma(
     details,
   };
 }
-

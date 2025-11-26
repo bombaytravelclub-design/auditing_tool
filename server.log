@@ -1,0 +1,3070 @@
+[dotenv@17.2.3] injecting env (3) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+✅ Supabase client initialized
+   URL: ✓
+   Key: ✓
+
+╔═══════════════════════════════════════════════════════════╗
+║     🚀 FREIGHT AUDIT BACKEND - RUNNING LOCALLY 🚀        ║
+╚═══════════════════════════════════════════════════════════╝
+
+✅ Server:    http://localhost:3000
+✅ Health:    http://localhost:3000/health
+✅ API:       http://localhost:3000/api/proformas
+
+📊 Available Endpoints:
+  GET  /api/proformas ✅
+  POST /api/pod/bulk-upload 🚧
+  POST /api/invoice/bulk-upload 🚧
+  GET  /api/bulk-jobs/:jobId 🚧
+  GET  /api/bulk-jobs/:jobId/items/:itemId 🚧
+  POST /api/review-actions 🚧
+
+🎯 Frontend: http://localhost:5174
+
+Press Ctrl+C to stop
+
+GET /api/bulk-jobs/1a380a58-9293-4e82-ad8c-f96b637ed5f8
+📊 Fetching bulk job: 1a380a58-9293-4e82-ad8c-f96b637ed5f8
+📊 Found 1 items for job 1a380a58-9293-4e82-ad8c-f96b637ed5f8
+📋 Raw items from database:
+  Item 1: {
+  id: '28663fac-39bc-4744-8b1a-ab736895fc2e',
+  file_name: 'Screenshot 2025-11-26 at 11.05.30 PM.png',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/proformas?limit=200
+📊 Fetching proformas...
+✅ Found 22 proformas
+POST /api/bulk-upload
+📤 Bulk upload request received
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 5: Environment/Tenant Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 Bulk upload request received:
+   Type: Invoice
+   Journey IDs from Frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+   Journey IDs count: 9
+   Files count: 1
+   Environment check: { supabaseUrl: '✅ Set', supabaseKey: '✅ Set', geminiKey: '✅ Set' }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Processing 1 files for 9 journeys
+✅ Created bulk job: 1c900394-44c1-4e7b-9f82-c007a6ac6692
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 1: Fetching Journeys
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs received from frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+Journey IDs count: 9
+Journey IDs types: [
+  {
+    id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'da93253c-3827-4db2-af78-acc883eb7518',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+    type: 'string',
+    isUUID: true
+  }
+]
+📋 Validating journey IDs:
+   Total received: 9
+   Valid UUIDs: 9
+   Invalid IDs: 0
+✅ Fetched 9 journeys
+   Journey 1: {
+  id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journey_number: 'LR20257713',
+  load_id: 'LCU95304199',
+  vehicle_number: 'MH11AB6104'
+}
+   Journey 2: {
+  id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journey_number: 'LR20251231',
+  load_id: 'LCU44201397',
+  vehicle_number: 'MH85AB9115'
+}
+   Journey 3: {
+  id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  journey_number: 'LR20253639',
+  load_id: 'LCU85015386',
+  vehicle_number: 'MH51AB4189'
+}
+   Journey 4: {
+  id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  journey_number: 'LR20254338',
+  load_id: 'LCU23425478',
+  vehicle_number: 'MH46AB3084'
+}
+   Journey 5: {
+  id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  journey_number: 'LR20252184',
+  load_id: 'LCU33441066',
+  vehicle_number: 'MH76AB7571'
+}
+   Journey 6: {
+  id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  journey_number: 'LR20254164',
+  load_id: 'LCU56718800',
+  vehicle_number: 'MH63AB5642'
+}
+   Journey 7: {
+  id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  journey_number: 'LR20256388',
+  load_id: 'LCU10215674',
+  vehicle_number: 'MH77AB5842'
+}
+   Journey 8: {
+  id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  journey_number: 'LR20257359',
+  load_id: 'LCU10639747',
+  vehicle_number: 'MH54AB8003'
+}
+   Journey 9: {
+  id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  journey_number: 'LR20253442',
+  load_id: 'LCU55667788',
+  vehicle_number: 'MH63AB7680'
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 2: Fetching Proformas
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fetching proformas for 9 journeys
+✅ Fetched 9 proformas
+   Proforma 1: {
+  id: '1e5e9b4b-87e3-46c9-9f71-13961449027f',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  total_amount: 55211.48
+}
+   Proforma 2: {
+  id: 'f2e479c8-0322-4106-aa19-9e269beefc25',
+  journey_id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  total_amount: 103138.34
+}
+   Proforma 3: {
+  id: 'f6440170-6541-4284-8e72-db230a6f635b',
+  journey_id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  total_amount: 155015.88
+}
+   Proforma 4: {
+  id: '15d2117a-fd14-4360-866a-c61b9c8e20ee',
+  journey_id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  total_amount: 92088.72
+}
+   Proforma 5: {
+  id: 'ed7146b2-810c-41bc-a36f-604bcfec73e7',
+  journey_id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  total_amount: 66843.13
+}
+   Proforma 6: {
+  id: '4a44dc65-0d59-469d-aa7d-30e33733d945',
+  journey_id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  total_amount: 47362.23
+}
+   Proforma 7: {
+  id: '21b544f5-f803-44f6-b614-aefd61058702',
+  journey_id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  total_amount: 66082.76
+}
+   Proforma 8: {
+  id: 'c2fa932c-50e2-4d7b-a4a8-75398f545596',
+  journey_id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  total_amount: 106262.54
+}
+   Proforma 9: {
+  id: '58a7fd0e-63f8-4ca9-8d5c-6d5271b2cf55',
+  journey_id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  total_amount: 108998.4
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Loaded 9 journeys for matching
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 1: Journey Loading Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs from Frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+Journeys loaded count: 9
+✅ Journeys fetched for job (bulk job will be created):
+  Journey 1: {
+  id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journey_number: 'LR20257713',
+  vehicle_number: 'MH11AB6104',
+  load_id: 'LCU95304199',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 2: {
+  id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journey_number: 'LR20251231',
+  vehicle_number: 'MH85AB9115',
+  load_id: 'LCU44201397',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 3: {
+  id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  journey_number: 'LR20253639',
+  vehicle_number: 'MH51AB4189',
+  load_id: 'LCU85015386',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 4: {
+  id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  journey_number: 'LR20254338',
+  vehicle_number: 'MH46AB3084',
+  load_id: 'LCU23425478',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 5: {
+  id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  journey_number: 'LR20252184',
+  vehicle_number: 'MH76AB7571',
+  load_id: 'LCU33441066',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 6: {
+  id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  journey_number: 'LR20254164',
+  vehicle_number: 'MH63AB5642',
+  load_id: 'LCU56718800',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 7: {
+  id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  journey_number: 'LR20256388',
+  vehicle_number: 'MH77AB5842',
+  load_id: 'LCU10215674',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 8: {
+  id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  journey_number: 'LR20257359',
+  vehicle_number: 'MH54AB8003',
+  load_id: 'LCU10639747',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 9: {
+  id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  journey_number: 'LR20253442',
+  vehicle_number: 'MH63AB7680',
+  load_id: 'LCU55667788',
+  hasProforma: undefined,
+  proformaId: null
+}
+📋 All journey_number values available for matching: [
+  'LR20257713',
+  'LR20251231',
+  'LR20253639',
+  'LR20254338',
+  'LR20252184',
+  'LR20254164',
+  'LR20256388',
+  'LR20257359',
+  'LR20253442'
+]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 CRITICAL: File Processing Loop Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files received in API: 1
+Files array: [
+  {
+    name: 'Screenshot 2025-11-26 at 11.05.30 PM.png',
+    size: 132274,
+    type: 'image/png'
+  }
+]
+Loop type: for loop with await (correct)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 PROCESSING FILE 1/1: Screenshot 2025-11-26 at 11.05.30 PM.png
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Processing file 1/1: Screenshot 2025-11-26 at 11.05.30 PM.png
+📤 Uploading to storage: invoice/1764192673638-Screenshot_2025-11-26_at_11.05.30_PM.png
+🔍 Running OCR on Screenshot 2025-11-26 at 11.05.30 PM.png...
+📄 Raw Gemini OCR Response (first 1000 chars): ```json
+{
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceNo": "INV-24001",
+    "invoiceDate": "2025-01-15",
+    "lrNo": "LR20257713",
+    "lcuNo": "LCU95304199",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 47727.03,
+    "tollCharges": 516.75,
+    "unloadingCharges": 1052.18,
+    "otherAddOnCharges": 0.00,
+    "subtotalBeforeTax": 49295.96,
+    "sgst": 2957.76,
+    "cgst": 2957.76,
+    "totalPayableAmount": 58169.23
+  },
+  "materialDetails": {
+    "description": "Industrial chemicals (non-hazardous)",
+    "quantityKg": 1764,
+    "packages": "18 Drums"
+  }
+}
+```
+🔍 Found LR Number in raw text (fallback): "LR20257713"
+✅ Parsed OCR JSON: {
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceNo": "INV-24001",
+    "invoiceDate": "2025-01-15",
+    "lrNo": "LR20257713",
+    "lcuNo": "LCU95304199",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 47727.03,
+    "tollCharges": 516.75,
+    "unloadingCharges": 1052.18,
+    "otherAddOnCharges": 0,
+    "subtotalBeforeTax": 49295.96,
+    "sgst": 2957.76,
+    "cgst": 2957.76,
+    "totalPayableAmount": 58169.23
+  },
+  "materialDetails": {
+    "description": "Industrial chemicals (non-hazardous)",
+    "quantityKg": 1764,
+    "packages": "18 Drums"
+  }
+}
+🔍 Found LR Number in invoiceDetails.lrNo: "LR20257713"
+🔍 LR Number extraction attempt: {
+  invoiceDetails_lrNo: 'LR20257713',
+  journeyNumber: undefined,
+  journey_number: undefined,
+  lrNumber: undefined,
+  lr_number: undefined,
+  lrNo: undefined,
+  lr_no: undefined,
+  tripId: undefined,
+  trip_id: undefined,
+  lrId: undefined,
+  lr_id: undefined,
+  allKeys: [ 'invoiceDetails', 'chargeBreakup', 'materialDetails' ],
+  fallbackLRNumber: 'LR20257713',
+  extracted: 'LR20257713'
+}
+📋 Final Extracted LR Number (journeyNumber): "LR20257713"
+📋 Full OCR Result Summary: {
+  journeyNumber: 'LR20257713',
+  vehicleNumber: null,
+  loadId: 'LCU95304199',
+  invoiceNumber: 'INV-24001',
+  baseFreight: 47727.03,
+  totalAmount: 58169.23,
+  chargesCount: 4
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 4: OCR Parsed Data Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: Screenshot 2025-11-26 at 11.05.30 PM.png
+OCR Extracted journeyNumber: LR20257713
+OCR journeyNumber type: string
+OCR journeyNumber value: "LR20257713"
+Full OCR Result Object Keys: [
+  'journeyNumber',
+  'vehicleNumber',
+  'loadId',
+  'invoiceNumber',
+  'baseFreight',
+  'totalAmount',
+  'charges',
+  'confidence',
+  'rawResponse',
+  'invoiceDetails',
+  'chargeBreakup',
+  'materialDetails'
+]
+Raw OCR Data (first level): {
+  journeyNumber: 'LR20257713',
+  invoiceDetails: [
+    'transporter',
+    'consignor',
+    'invoiceNo',
+    'invoiceDate',
+    'lrNo',
+    'lcuNo',
+    'origin',
+    'destination'
+  ],
+  chargeBreakup: [
+    'baseFreight',
+    'tollCharges',
+    'unloadingCharges',
+    'otherAddOnCharges',
+    'subtotalBeforeTax',
+    'sgst',
+    'cgst',
+    'totalPayableAmount'
+  ]
+}
+invoiceDetails.lrNo: LR20257713
+invoiceDetails.lrNo type: string
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 MATCHING PROCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Finding matching journey:
+   OCR LR (raw): "LR20257713"
+   OCR LR (normalized): "LR20257713"
+   OCR Load ID/LCU (raw): "LCU95304199"
+   OCR Load ID/LCU (normalized): "LCU95304199"
+   Available journeys: 9
+   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅
+      OCR LR: "LR20257713"
+      DB journey_number: "LR20257713" (normalized: "LR20257713")
+      Journey ID: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+✅ Match Result: Journey ID b37aff14-a998-4b8e-b868-ddc7fb43c5ae matched!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 Final match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journeyLR: 'LR20257713',
+  details: [ 'LR Number matched: LR20257713 = LR20257713' ]
+}
+🎯 Match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  details: [ 'LR Number matched: LR20257713 = LR20257713' ]
+}
+⚠️ Journey matched (LR: LR20257713) but no proforma found
+   This means journey exists but no contract to compare
+   Setting status to 'mismatch' (needs review)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟡🟡🟡 PREPARING TO INSERT bulk_job_item 🟡🟡🟡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: Screenshot 2025-11-26 at 11.05.30 PM.png
+Job ID: 1c900394-44c1-4e7b-9f82-c007a6ac6692
+Job ID type: string
+Match Status: matched
+LR Number from OCR: LR20257713
+Journey ID: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+Storage Path: invoice/1764192673638-Screenshot_2025-11-26_at_11.05.30_PM.png
+Table Name: bulk_job_items (VERIFY THIS MATCHES YOUR DB!)
+Supabase URL: https://jflpynnmhjpqddseixzj.supabase.co
+
+Item Payload (first level keys):
+  bulk_job_id: 1c900394-44c1-4e7b-9f82-c007a6ac6692
+  file_name: Screenshot 2025-11-26 at 11.05.30 PM.png
+  storage_path: invoice/1764192673638-Screenshot_2025-11-26_at_11.05.30_PM.png
+  journey_id: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+  match_status: matched
+  match_details: {"matchScore":100,"matchReason":"LR Number matched: LR20257713 = LR20257713","matchDetails":["LR Number matched: LR20257713 = LR20257713"],"isMatched":true}
+  ocr_extracted_data keys: [
+  'journeyNumber',   'vehicleNumber',
+  'loadId',          'invoiceNumber',
+  'baseFreight',     'totalAmount',
+  'charges',         'confidence',
+  'rawResponse',     'error',
+  'invoiceDetails',  'chargeBreakup',
+  'materialDetails', 'chargeVariances',
+  'proformaData',    'fileUrl'
+]
+
+Full Item Data (JSON):
+{
+  "bulk_job_id": "1c900394-44c1-4e7b-9f82-c007a6ac6692",
+  "file_name": "Screenshot 2025-11-26 at 11.05.30 PM.png",
+  "storage_path": "invoice/1764192673638-Screenshot_2025-11-26_at_11.05.30_PM.png",
+  "journey_id": "b37aff14-a998-4b8e-b868-ddc7fb43c5ae",
+  "proforma_id": null,
+  "ocr_extracted_data": {
+    "journeyNumber": "LR20257713",
+    "vehicleNumber": null,
+    "loadId": "LCU95304199",
+    "invoiceNumber": "INV-24001",
+    "baseFreight": 47727.03,
+    "totalAmount": 58169.23,
+    "charges": [
+      {
+        "type": "Toll Charges",
+        "amount": 516.75
+      },
+      {
+        "type": "Unloading Charges",
+        "amount": 1052.18
+      },
+      {
+        "type": "SGST",
+        "amount": 2957.76
+      },
+      {
+        "type": "CGST",
+        "amount": 2957.76
+      }
+    ],
+    "confidence": 0.8,
+    "rawResponse": {
+      "content": "```json\n{\n  \"invoiceDetails\": {\n    \"transporter\": \"Global Logistics Inc\",\n    \"consignor\": \"Acme Chemicals Pvt Ltd\",\n    \"invoiceNo\": \"INV-24001\",\n    \"invoiceDate\": \"2025-01-15\",\n    \"lrNo\": \"LR20257713\",\n    \"lcuNo\": \"LCU95304199\",\n    \"origin\": \"Bangalore, KA\",\n    \"destination\": \"Surat, GJ\"\n  },\n  \"chargeBreakup\": {\n    \"baseFreight\": 47727.03,\n    \"tollCharges\": 516.75,\n    \"unloadingCharges\": 1052.18,\n    \"otherAddOnCharges\": 0.00,\n    \"subtotalBeforeTax\": 49295.96,\n    \"sgst\": 2957.76,\n    \"cgst\": 2957.76,\n    \"totalPayableAmount\": 58169.23\n  },\n  \"materialDetails\": {\n    \"description\": \"Industrial chemicals (non-hazardous)\",\n    \"quantityKg\": 1764,\n    \"packages\": \"18 Drums\"\n  }\n}\n```",
+      "parsed": {
+        "invoiceDetails": {
+          "transporter": "Global Logistics Inc",
+          "consignor": "Acme Chemicals Pvt Ltd",
+          "invoiceNo": "INV-24001",
+          "invoiceDate": "2025-01-15",
+          "lrNo": "LR20257713",
+          "lcuNo": "LCU95304199",
+          "origin": "Bangalore, KA",
+          "destination": "Surat, GJ"
+        },
+        "chargeBreakup": {
+          "baseFreight": 47727.03,
+          "tollCharges": 516.75,
+          "unloadingCharges": 1052.18,
+          "otherAddOnCharges": 0,
+          "subtotalBeforeTax": 49295.96,
+          "sgst": 2957.76,
+          "cgst": 2957.76,
+          "totalPayableAmount": 58169.23
+        },
+        "materialDetails": {
+          "description": "Industrial chemicals (non-hazardous)",
+          "quantityKg": 1764,
+          "packages": "18 Drums"
+        }
+      }
+    },
+    "error": null,
+    "invoiceDetails": {
+      "transporter": "Global Logistics Inc",
+      "consignor": "Acme Chemicals Pvt Ltd",
+      "invoiceNo": "INV-24001",
+      "invoiceDate": "2025-01-15",
+      "lrNo": "LR20257713",
+      "lcuNo": "LCU95304199",
+      "origin": "Bangalore, KA",
+      "destination": "Surat, GJ"
+    },
+    "chargeBreakup": {
+      "baseFreight": 47727.03,
+      "tollCharges": 516.75,
+      "unloadingCharges": 1052.18,
+      "otherAddOnCharges": 0,
+      "subtotalBeforeTax": 49295.96,
+      "sgst": 2957.76,
+      "cgst": 2957.76,
+      "totalPayableAmount": 58169.23
+    },
+    "materialDetails": {
+      "description": "Industrial chemicals (non-hazardous)",
+      "quantityKg": 1764,
+      "packages": "18 Drums"
+    },
+    "chargeVariances": null,
+    "proformaData": null,
+    "fileUrl": "https://jflpynnmhjpqddseixzj.supabase.co/storage/v1/object/public/documents/invoice/1764192673638-Screenshot_2025-11-26_at_11.05.30_PM.png"
+  },
+  "match_status": "matched",
+  "match_details": {
+    "matchScore": 100,
+    "matchReason": "LR Number matched: LR20257713 = LR20257713",
+    "matchDetails": [
+      "LR Number matched: LR20257713 = LR20257713"
+    ],
+    "isMatched": true
+  }
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💾 Executing INSERT into bulk_job_items...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅✅✅ SUCCESSFULLY INSERTED bulk_job_item ✅✅✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Insert Duration: 165ms
+Inserted Item ID: 1c36810b-eb79-47b1-aee0-e1f32fab8117
+Inserted Item Data: {
+  id: '1c36810b-eb79-47b1-aee0-e1f32fab8117',
+  bulk_job_id: '1c900394-44c1-4e7b-9f82-c007a6ac6692',
+  file_name: 'Screenshot 2025-11-26 at 11.05.30 PM.png',
+  match_status: 'matched'
+}
+
+Verify in Supabase:
+  SELECT * FROM bulk_job_items WHERE id = '1c36810b-eb79-47b1-aee0-e1f32fab8117';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Completed processing file 1/1: Screenshot 2025-11-26 at 11.05.30 PM.png
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 FILE PROCESSING LOOP COMPLETED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files processed: 1
+Matched: 1
+Needs Review: 0
+Failed: 0
+
+If processedItems.length === 0, the loop never executed!
+If processedItems.length < files.length, some files failed!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 VERIFYING ITEMS IN DATABASE BEFORE UPDATING JOB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Items found in database for job 1c900394-44c1-4e7b-9f82-c007a6ac6692: 1
+✅ Items exist in database:
+  1. ID: 1c36810b-eb79-47b1-aee0-e1f32fab8117, File: Screenshot 2025-11-26 at 11.05.30 PM.png, Match Status: matched
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Updating bulk job 1c900394-44c1-4e7b-9f82-c007a6ac6692 with final counts...
+✅ Bulk job updated successfully
+✅ Completed: 1 matched
+GET /api/bulk-jobs/1c900394-44c1-4e7b-9f82-c007a6ac6692
+📊 Fetching bulk job: 1c900394-44c1-4e7b-9f82-c007a6ac6692
+📊 Found 1 items for job 1c900394-44c1-4e7b-9f82-c007a6ac6692
+📋 Raw items from database:
+  Item 1: {
+  id: '1c36810b-eb79-47b1-aee0-e1f32fab8117',
+  file_name: 'Screenshot 2025-11-26 at 11.05.30 PM.png',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/bulk-jobs/1c900394-44c1-4e7b-9f82-c007a6ac6692
+📊 Fetching bulk job: 1c900394-44c1-4e7b-9f82-c007a6ac6692
+📊 Found 1 items for job 1c900394-44c1-4e7b-9f82-c007a6ac6692
+📋 Raw items from database:
+  Item 1: {
+  id: '1c36810b-eb79-47b1-aee0-e1f32fab8117',
+  file_name: 'Screenshot 2025-11-26 at 11.05.30 PM.png',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/bulk-jobs/1c900394-44c1-4e7b-9f82-c007a6ac6692
+📊 Fetching bulk job: 1c900394-44c1-4e7b-9f82-c007a6ac6692
+📊 Found 1 items for job 1c900394-44c1-4e7b-9f82-c007a6ac6692
+📋 Raw items from database:
+  Item 1: {
+  id: '1c36810b-eb79-47b1-aee0-e1f32fab8117',
+  file_name: 'Screenshot 2025-11-26 at 11.05.30 PM.png',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /health
+GET /api/proformas?limit=200
+📊 Fetching proformas...
+✅ Found 22 proformas
+POST /api/bulk-upload
+📤 Bulk upload request received
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 5: Environment/Tenant Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 Bulk upload request received:
+   Type: Invoice
+   Journey IDs from Frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+   Journey IDs count: 9
+   Files count: 1
+   Environment check: { supabaseUrl: '✅ Set', supabaseKey: '✅ Set', geminiKey: '✅ Set' }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Processing 1 files for 9 journeys
+✅ Created bulk job: 0d6f8962-5071-4ebe-a501-8befedd658d4
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 1: Fetching Journeys
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs received from frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+Journey IDs count: 9
+Journey IDs types: [
+  {
+    id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'da93253c-3827-4db2-af78-acc883eb7518',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+    type: 'string',
+    isUUID: true
+  }
+]
+📋 Validating journey IDs:
+   Total received: 9
+   Valid UUIDs: 9
+   Invalid IDs: 0
+✅ Fetched 9 journeys
+   Journey 1: {
+  id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journey_number: 'LR20257713',
+  load_id: 'LCU95304199',
+  vehicle_number: 'MH11AB6104'
+}
+   Journey 2: {
+  id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journey_number: 'LR20251231',
+  load_id: 'LCU44201397',
+  vehicle_number: 'MH85AB9115'
+}
+   Journey 3: {
+  id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  journey_number: 'LR20253639',
+  load_id: 'LCU85015386',
+  vehicle_number: 'MH51AB4189'
+}
+   Journey 4: {
+  id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  journey_number: 'LR20254338',
+  load_id: 'LCU23425478',
+  vehicle_number: 'MH46AB3084'
+}
+   Journey 5: {
+  id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  journey_number: 'LR20252184',
+  load_id: 'LCU33441066',
+  vehicle_number: 'MH76AB7571'
+}
+   Journey 6: {
+  id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  journey_number: 'LR20254164',
+  load_id: 'LCU56718800',
+  vehicle_number: 'MH63AB5642'
+}
+   Journey 7: {
+  id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  journey_number: 'LR20256388',
+  load_id: 'LCU10215674',
+  vehicle_number: 'MH77AB5842'
+}
+   Journey 8: {
+  id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  journey_number: 'LR20257359',
+  load_id: 'LCU10639747',
+  vehicle_number: 'MH54AB8003'
+}
+   Journey 9: {
+  id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  journey_number: 'LR20253442',
+  load_id: 'LCU55667788',
+  vehicle_number: 'MH63AB7680'
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 2: Fetching Proformas
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fetching proformas for 9 journeys
+✅ Fetched 9 proformas
+   Proforma 1: {
+  id: '1e5e9b4b-87e3-46c9-9f71-13961449027f',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  total_amount: 55211.48
+}
+   Proforma 2: {
+  id: 'f2e479c8-0322-4106-aa19-9e269beefc25',
+  journey_id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  total_amount: 103138.34
+}
+   Proforma 3: {
+  id: 'f6440170-6541-4284-8e72-db230a6f635b',
+  journey_id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  total_amount: 155015.88
+}
+   Proforma 4: {
+  id: '15d2117a-fd14-4360-866a-c61b9c8e20ee',
+  journey_id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  total_amount: 92088.72
+}
+   Proforma 5: {
+  id: 'ed7146b2-810c-41bc-a36f-604bcfec73e7',
+  journey_id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  total_amount: 66843.13
+}
+   Proforma 6: {
+  id: '4a44dc65-0d59-469d-aa7d-30e33733d945',
+  journey_id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  total_amount: 47362.23
+}
+   Proforma 7: {
+  id: '21b544f5-f803-44f6-b614-aefd61058702',
+  journey_id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  total_amount: 66082.76
+}
+   Proforma 8: {
+  id: 'c2fa932c-50e2-4d7b-a4a8-75398f545596',
+  journey_id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  total_amount: 106262.54
+}
+   Proforma 9: {
+  id: '58a7fd0e-63f8-4ca9-8d5c-6d5271b2cf55',
+  journey_id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  total_amount: 108998.4
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Loaded 9 journeys for matching
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 1: Journey Loading Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs from Frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+Journeys loaded count: 9
+✅ Journeys fetched for job (bulk job will be created):
+  Journey 1: {
+  id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journey_number: 'LR20257713',
+  vehicle_number: 'MH11AB6104',
+  load_id: 'LCU95304199',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 2: {
+  id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journey_number: 'LR20251231',
+  vehicle_number: 'MH85AB9115',
+  load_id: 'LCU44201397',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 3: {
+  id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  journey_number: 'LR20253639',
+  vehicle_number: 'MH51AB4189',
+  load_id: 'LCU85015386',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 4: {
+  id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  journey_number: 'LR20254338',
+  vehicle_number: 'MH46AB3084',
+  load_id: 'LCU23425478',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 5: {
+  id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  journey_number: 'LR20252184',
+  vehicle_number: 'MH76AB7571',
+  load_id: 'LCU33441066',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 6: {
+  id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  journey_number: 'LR20254164',
+  vehicle_number: 'MH63AB5642',
+  load_id: 'LCU56718800',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 7: {
+  id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  journey_number: 'LR20256388',
+  vehicle_number: 'MH77AB5842',
+  load_id: 'LCU10215674',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 8: {
+  id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  journey_number: 'LR20257359',
+  vehicle_number: 'MH54AB8003',
+  load_id: 'LCU10639747',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 9: {
+  id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  journey_number: 'LR20253442',
+  vehicle_number: 'MH63AB7680',
+  load_id: 'LCU55667788',
+  hasProforma: undefined,
+  proformaId: null
+}
+📋 All journey_number values available for matching: [
+  'LR20257713',
+  'LR20251231',
+  'LR20253639',
+  'LR20254338',
+  'LR20252184',
+  'LR20254164',
+  'LR20256388',
+  'LR20257359',
+  'LR20253442'
+]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 CRITICAL: File Processing Loop Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files received in API: 1
+Files array: [
+  {
+    name: 'invoice_INV-24001.pdf',
+    size: 4348,
+    type: 'application/pdf'
+  }
+]
+Loop type: for loop with await (correct)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 PROCESSING FILE 1/1: invoice_INV-24001.pdf
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Processing file 1/1: invoice_INV-24001.pdf
+📤 Uploading to storage: invoice/1764193193880-invoice_INV-24001.pdf
+🔍 Running OCR on invoice_INV-24001.pdf...
+📄 Raw Gemini OCR Response (first 1000 chars): ```json
+{
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceNo": "INV-24001",
+    "invoiceDate": "2025-01-15",
+    "lrNo": "LR20257713",
+    "lcuNo": "LCU95304199",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 47727.03,
+    "tollCharges": 516.75,
+    "unloadingCharges": 1052.18,
+    "otherAddOnCharges": 0.00,
+    "subtotalBeforeTax": 49295.96,
+    "sgst": 2957.76,
+    "cgst": 2957.76,
+    "totalPayableAmount": 58169.23
+  },
+  "materialDetails": {
+    "description": "Industrial chemicals (non-hazardous)",
+    "quantityKg": 1764,
+    "packages": "18 Drums"
+  }
+}
+```
+🔍 Found LR Number in raw text (fallback): "LR20257713"
+✅ Parsed OCR JSON: {
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceNo": "INV-24001",
+    "invoiceDate": "2025-01-15",
+    "lrNo": "LR20257713",
+    "lcuNo": "LCU95304199",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 47727.03,
+    "tollCharges": 516.75,
+    "unloadingCharges": 1052.18,
+    "otherAddOnCharges": 0,
+    "subtotalBeforeTax": 49295.96,
+    "sgst": 2957.76,
+    "cgst": 2957.76,
+    "totalPayableAmount": 58169.23
+  },
+  "materialDetails": {
+    "description": "Industrial chemicals (non-hazardous)",
+    "quantityKg": 1764,
+    "packages": "18 Drums"
+  }
+}
+🔍 Found LR Number in invoiceDetails.lrNo: "LR20257713"
+🔍 LR Number extraction attempt: {
+  invoiceDetails_lrNo: 'LR20257713',
+  journeyNumber: undefined,
+  journey_number: undefined,
+  lrNumber: undefined,
+  lr_number: undefined,
+  lrNo: undefined,
+  lr_no: undefined,
+  tripId: undefined,
+  trip_id: undefined,
+  lrId: undefined,
+  lr_id: undefined,
+  allKeys: [ 'invoiceDetails', 'chargeBreakup', 'materialDetails' ],
+  fallbackLRNumber: 'LR20257713',
+  extracted: 'LR20257713'
+}
+📋 Final Extracted LR Number (journeyNumber): "LR20257713"
+📋 Full OCR Result Summary: {
+  journeyNumber: 'LR20257713',
+  vehicleNumber: null,
+  loadId: 'LCU95304199',
+  invoiceNumber: 'INV-24001',
+  baseFreight: 47727.03,
+  totalAmount: 58169.23,
+  chargesCount: 4
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 4: OCR Parsed Data Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24001.pdf
+OCR Extracted journeyNumber: LR20257713
+OCR journeyNumber type: string
+OCR journeyNumber value: "LR20257713"
+Full OCR Result Object Keys: [
+  'journeyNumber',
+  'vehicleNumber',
+  'loadId',
+  'invoiceNumber',
+  'baseFreight',
+  'totalAmount',
+  'charges',
+  'confidence',
+  'rawResponse',
+  'invoiceDetails',
+  'chargeBreakup',
+  'materialDetails'
+]
+Raw OCR Data (first level): {
+  journeyNumber: 'LR20257713',
+  invoiceDetails: [
+    'transporter',
+    'consignor',
+    'invoiceNo',
+    'invoiceDate',
+    'lrNo',
+    'lcuNo',
+    'origin',
+    'destination'
+  ],
+  chargeBreakup: [
+    'baseFreight',
+    'tollCharges',
+    'unloadingCharges',
+    'otherAddOnCharges',
+    'subtotalBeforeTax',
+    'sgst',
+    'cgst',
+    'totalPayableAmount'
+  ]
+}
+invoiceDetails.lrNo: LR20257713
+invoiceDetails.lrNo type: string
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 MATCHING PROCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Finding matching journey:
+   OCR LR (raw): "LR20257713"
+   OCR LR (normalized): "LR20257713"
+   OCR Load ID/LCU (raw): "LCU95304199"
+   OCR Load ID/LCU (normalized): "LCU95304199"
+   Available journeys: 9
+   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅
+      OCR LR: "LR20257713"
+      DB journey_number: "LR20257713" (normalized: "LR20257713")
+      Journey ID: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+✅ Match Result: Journey ID b37aff14-a998-4b8e-b868-ddc7fb43c5ae matched!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 Final match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journeyLR: 'LR20257713',
+  details: [ 'LR Number matched: LR20257713 = LR20257713' ]
+}
+🎯 Match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  details: [ 'LR Number matched: LR20257713 = LR20257713' ]
+}
+⚠️ Journey matched (LR: LR20257713) but no proforma found
+   This means journey exists but no contract to compare
+   Setting status to 'mismatch' (needs review)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟡🟡🟡 PREPARING TO INSERT bulk_job_item 🟡🟡🟡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24001.pdf
+Job ID: 0d6f8962-5071-4ebe-a501-8befedd658d4
+Job ID type: string
+Match Status: matched
+LR Number from OCR: LR20257713
+Journey ID: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+Storage Path: invoice/1764193193880-invoice_INV-24001.pdf
+Table Name: bulk_job_items (VERIFY THIS MATCHES YOUR DB!)
+Supabase URL: https://jflpynnmhjpqddseixzj.supabase.co
+
+Item Payload (first level keys):
+  bulk_job_id: 0d6f8962-5071-4ebe-a501-8befedd658d4
+  file_name: invoice_INV-24001.pdf
+  storage_path: invoice/1764193193880-invoice_INV-24001.pdf
+  journey_id: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+  match_status: matched
+  match_details: {"matchScore":100,"matchReason":"LR Number matched: LR20257713 = LR20257713","matchDetails":["LR Number matched: LR20257713 = LR20257713"],"isMatched":true}
+  ocr_extracted_data keys: [
+  'journeyNumber',   'vehicleNumber',
+  'loadId',          'invoiceNumber',
+  'baseFreight',     'totalAmount',
+  'charges',         'confidence',
+  'rawResponse',     'error',
+  'invoiceDetails',  'chargeBreakup',
+  'materialDetails', 'chargeVariances',
+  'proformaData',    'fileUrl'
+]
+
+Full Item Data (JSON):
+{
+  "bulk_job_id": "0d6f8962-5071-4ebe-a501-8befedd658d4",
+  "file_name": "invoice_INV-24001.pdf",
+  "storage_path": "invoice/1764193193880-invoice_INV-24001.pdf",
+  "journey_id": "b37aff14-a998-4b8e-b868-ddc7fb43c5ae",
+  "proforma_id": null,
+  "ocr_extracted_data": {
+    "journeyNumber": "LR20257713",
+    "vehicleNumber": null,
+    "loadId": "LCU95304199",
+    "invoiceNumber": "INV-24001",
+    "baseFreight": 47727.03,
+    "totalAmount": 58169.23,
+    "charges": [
+      {
+        "type": "Toll Charges",
+        "amount": 516.75
+      },
+      {
+        "type": "Unloading Charges",
+        "amount": 1052.18
+      },
+      {
+        "type": "SGST",
+        "amount": 2957.76
+      },
+      {
+        "type": "CGST",
+        "amount": 2957.76
+      }
+    ],
+    "confidence": 0.8,
+    "rawResponse": {
+      "content": "```json\n{\n  \"invoiceDetails\": {\n    \"transporter\": \"Global Logistics Inc\",\n    \"consignor\": \"Acme Chemicals Pvt Ltd\",\n    \"invoiceNo\": \"INV-24001\",\n    \"invoiceDate\": \"2025-01-15\",\n    \"lrNo\": \"LR20257713\",\n    \"lcuNo\": \"LCU95304199\",\n    \"origin\": \"Bangalore, KA\",\n    \"destination\": \"Surat, GJ\"\n  },\n  \"chargeBreakup\": {\n    \"baseFreight\": 47727.03,\n    \"tollCharges\": 516.75,\n    \"unloadingCharges\": 1052.18,\n    \"otherAddOnCharges\": 0.00,\n    \"subtotalBeforeTax\": 49295.96,\n    \"sgst\": 2957.76,\n    \"cgst\": 2957.76,\n    \"totalPayableAmount\": 58169.23\n  },\n  \"materialDetails\": {\n    \"description\": \"Industrial chemicals (non-hazardous)\",\n    \"quantityKg\": 1764,\n    \"packages\": \"18 Drums\"\n  }\n}\n```",
+      "parsed": {
+        "invoiceDetails": {
+          "transporter": "Global Logistics Inc",
+          "consignor": "Acme Chemicals Pvt Ltd",
+          "invoiceNo": "INV-24001",
+          "invoiceDate": "2025-01-15",
+          "lrNo": "LR20257713",
+          "lcuNo": "LCU95304199",
+          "origin": "Bangalore, KA",
+          "destination": "Surat, GJ"
+        },
+        "chargeBreakup": {
+          "baseFreight": 47727.03,
+          "tollCharges": 516.75,
+          "unloadingCharges": 1052.18,
+          "otherAddOnCharges": 0,
+          "subtotalBeforeTax": 49295.96,
+          "sgst": 2957.76,
+          "cgst": 2957.76,
+          "totalPayableAmount": 58169.23
+        },
+        "materialDetails": {
+          "description": "Industrial chemicals (non-hazardous)",
+          "quantityKg": 1764,
+          "packages": "18 Drums"
+        }
+      }
+    },
+    "error": null,
+    "invoiceDetails": {
+      "transporter": "Global Logistics Inc",
+      "consignor": "Acme Chemicals Pvt Ltd",
+      "invoiceNo": "INV-24001",
+      "invoiceDate": "2025-01-15",
+      "lrNo": "LR20257713",
+      "lcuNo": "LCU95304199",
+      "origin": "Bangalore, KA",
+      "destination": "Surat, GJ"
+    },
+    "chargeBreakup": {
+      "baseFreight": 47727.03,
+      "tollCharges": 516.75,
+      "unloadingCharges": 1052.18,
+      "otherAddOnCharges": 0,
+      "subtotalBeforeTax": 49295.96,
+      "sgst": 2957.76,
+      "cgst": 2957.76,
+      "totalPayableAmount": 58169.23
+    },
+    "materialDetails": {
+      "description": "Industrial chemicals (non-hazardous)",
+      "quantityKg": 1764,
+      "packages": "18 Drums"
+    },
+    "chargeVariances": null,
+    "proformaData": null,
+    "fileUrl": "https://jflpynnmhjpqddseixzj.supabase.co/storage/v1/object/public/documents/invoice/1764193193880-invoice_INV-24001.pdf"
+  },
+  "match_status": "matched",
+  "match_details": {
+    "matchScore": 100,
+    "matchReason": "LR Number matched: LR20257713 = LR20257713",
+    "matchDetails": [
+      "LR Number matched: LR20257713 = LR20257713"
+    ],
+    "isMatched": true
+  }
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💾 Executing INSERT into bulk_job_items...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅✅✅ SUCCESSFULLY INSERTED bulk_job_item ✅✅✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Insert Duration: 215ms
+Inserted Item ID: 90855fd2-6d95-4c47-b17c-a1a795308423
+Inserted Item Data: {
+  id: '90855fd2-6d95-4c47-b17c-a1a795308423',
+  bulk_job_id: '0d6f8962-5071-4ebe-a501-8befedd658d4',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'matched'
+}
+
+Verify in Supabase:
+  SELECT * FROM bulk_job_items WHERE id = '90855fd2-6d95-4c47-b17c-a1a795308423';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Completed processing file 1/1: invoice_INV-24001.pdf
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 FILE PROCESSING LOOP COMPLETED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files processed: 1
+Matched: 1
+Needs Review: 0
+Failed: 0
+
+If processedItems.length === 0, the loop never executed!
+If processedItems.length < files.length, some files failed!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 VERIFYING ITEMS IN DATABASE BEFORE UPDATING JOB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Items found in database for job 0d6f8962-5071-4ebe-a501-8befedd658d4: 1
+✅ Items exist in database:
+  1. ID: 90855fd2-6d95-4c47-b17c-a1a795308423, File: invoice_INV-24001.pdf, Match Status: matched
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Updating bulk job 0d6f8962-5071-4ebe-a501-8befedd658d4 with final counts...
+✅ Bulk job updated successfully
+✅ Completed: 1 matched
+GET /api/bulk-jobs/0d6f8962-5071-4ebe-a501-8befedd658d4
+📊 Fetching bulk job: 0d6f8962-5071-4ebe-a501-8befedd658d4
+📊 Found 1 items for job 0d6f8962-5071-4ebe-a501-8befedd658d4
+📋 Raw items from database:
+  Item 1: {
+  id: '90855fd2-6d95-4c47-b17c-a1a795308423',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+POST /api/bulk-jobs/0d6f8962-5071-4ebe-a501-8befedd658d4
+❌ Error saving review: {
+  code: 'PGRST204',
+  details: null,
+  hint: null,
+  message: "Could not find the 'charge_decisions' column of 'review_actions' in the schema cache"
+}
+GET /api/proformas?limit=200
+📊 Fetching proformas...
+✅ Found 22 proformas
+POST /api/bulk-upload
+📤 Bulk upload request received
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 5: Environment/Tenant Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 Bulk upload request received:
+   Type: Invoice
+   Journey IDs from Frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+   Journey IDs count: 9
+   Files count: 2
+   Environment check: { supabaseUrl: '✅ Set', supabaseKey: '✅ Set', geminiKey: '✅ Set' }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Processing 2 files for 9 journeys
+✅ Created bulk job: d3cda371-218c-4821-8e2c-61467ff2610d
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 1: Fetching Journeys
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs received from frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+Journey IDs count: 9
+Journey IDs types: [
+  {
+    id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'da93253c-3827-4db2-af78-acc883eb7518',
+    type: 'string',
+    isUUID: true
+  },
+  {
+    id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+    type: 'string',
+    isUUID: true
+  }
+]
+📋 Validating journey IDs:
+   Total received: 9
+   Valid UUIDs: 9
+   Invalid IDs: 0
+✅ Fetched 9 journeys
+   Journey 1: {
+  id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journey_number: 'LR20257713',
+  load_id: 'LCU95304199',
+  vehicle_number: 'MH11AB6104'
+}
+   Journey 2: {
+  id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journey_number: 'LR20251231',
+  load_id: 'LCU44201397',
+  vehicle_number: 'MH85AB9115'
+}
+   Journey 3: {
+  id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  journey_number: 'LR20253639',
+  load_id: 'LCU85015386',
+  vehicle_number: 'MH51AB4189'
+}
+   Journey 4: {
+  id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  journey_number: 'LR20254338',
+  load_id: 'LCU23425478',
+  vehicle_number: 'MH46AB3084'
+}
+   Journey 5: {
+  id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  journey_number: 'LR20252184',
+  load_id: 'LCU33441066',
+  vehicle_number: 'MH76AB7571'
+}
+   Journey 6: {
+  id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  journey_number: 'LR20254164',
+  load_id: 'LCU56718800',
+  vehicle_number: 'MH63AB5642'
+}
+   Journey 7: {
+  id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  journey_number: 'LR20256388',
+  load_id: 'LCU10215674',
+  vehicle_number: 'MH77AB5842'
+}
+   Journey 8: {
+  id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  journey_number: 'LR20257359',
+  load_id: 'LCU10639747',
+  vehicle_number: 'MH54AB8003'
+}
+   Journey 9: {
+  id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  journey_number: 'LR20253442',
+  load_id: 'LCU55667788',
+  vehicle_number: 'MH63AB7680'
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 2: Fetching Proformas
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fetching proformas for 9 journeys
+✅ Fetched 9 proformas
+   Proforma 1: {
+  id: '1e5e9b4b-87e3-46c9-9f71-13961449027f',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  total_amount: 55211.48
+}
+   Proforma 2: {
+  id: 'f2e479c8-0322-4106-aa19-9e269beefc25',
+  journey_id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  total_amount: 103138.34
+}
+   Proforma 3: {
+  id: 'f6440170-6541-4284-8e72-db230a6f635b',
+  journey_id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  total_amount: 155015.88
+}
+   Proforma 4: {
+  id: '15d2117a-fd14-4360-866a-c61b9c8e20ee',
+  journey_id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  total_amount: 92088.72
+}
+   Proforma 5: {
+  id: 'ed7146b2-810c-41bc-a36f-604bcfec73e7',
+  journey_id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  total_amount: 66843.13
+}
+   Proforma 6: {
+  id: '4a44dc65-0d59-469d-aa7d-30e33733d945',
+  journey_id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  total_amount: 47362.23
+}
+   Proforma 7: {
+  id: '21b544f5-f803-44f6-b614-aefd61058702',
+  journey_id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  total_amount: 66082.76
+}
+   Proforma 8: {
+  id: 'c2fa932c-50e2-4d7b-a4a8-75398f545596',
+  journey_id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  total_amount: 106262.54
+}
+   Proforma 9: {
+  id: '58a7fd0e-63f8-4ca9-8d5c-6d5271b2cf55',
+  journey_id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  total_amount: 108998.4
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Loaded 9 journeys for matching
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 1: Journey Loading Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs from Frontend: [
+  "5a3d76de-24b5-4fa9-a501-c3e8a6f75d04",
+  "0579602b-f1c5-43e9-b2f4-06f9d89a6454",
+  "100a69cc-de38-4f53-ae4d-182e1edf0459",
+  "11770ed5-0eea-4abf-a484-69f2c4c7c81b",
+  "05e47973-5548-4b40-90f6-3fe763e3ece4",
+  "253f10ec-7321-49b1-baa9-dc826a78bb9e",
+  "f2ef6038-2940-4fbd-bbac-5d625724fab5",
+  "da93253c-3827-4db2-af78-acc883eb7518",
+  "b37aff14-a998-4b8e-b868-ddc7fb43c5ae"
+]
+Journeys loaded count: 9
+✅ Journeys fetched for job (bulk job will be created):
+  Journey 1: {
+  id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journey_number: 'LR20257713',
+  vehicle_number: 'MH11AB6104',
+  load_id: 'LCU95304199',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 2: {
+  id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journey_number: 'LR20251231',
+  vehicle_number: 'MH85AB9115',
+  load_id: 'LCU44201397',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 3: {
+  id: 'f2ef6038-2940-4fbd-bbac-5d625724fab5',
+  journey_number: 'LR20253639',
+  vehicle_number: 'MH51AB4189',
+  load_id: 'LCU85015386',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 4: {
+  id: '253f10ec-7321-49b1-baa9-dc826a78bb9e',
+  journey_number: 'LR20254338',
+  vehicle_number: 'MH46AB3084',
+  load_id: 'LCU23425478',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 5: {
+  id: '05e47973-5548-4b40-90f6-3fe763e3ece4',
+  journey_number: 'LR20252184',
+  vehicle_number: 'MH76AB7571',
+  load_id: 'LCU33441066',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 6: {
+  id: '11770ed5-0eea-4abf-a484-69f2c4c7c81b',
+  journey_number: 'LR20254164',
+  vehicle_number: 'MH63AB5642',
+  load_id: 'LCU56718800',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 7: {
+  id: '100a69cc-de38-4f53-ae4d-182e1edf0459',
+  journey_number: 'LR20256388',
+  vehicle_number: 'MH77AB5842',
+  load_id: 'LCU10215674',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 8: {
+  id: '0579602b-f1c5-43e9-b2f4-06f9d89a6454',
+  journey_number: 'LR20257359',
+  vehicle_number: 'MH54AB8003',
+  load_id: 'LCU10639747',
+  hasProforma: undefined,
+  proformaId: null
+}
+  Journey 9: {
+  id: '5a3d76de-24b5-4fa9-a501-c3e8a6f75d04',
+  journey_number: 'LR20253442',
+  vehicle_number: 'MH63AB7680',
+  load_id: 'LCU55667788',
+  hasProforma: undefined,
+  proformaId: null
+}
+📋 All journey_number values available for matching: [
+  'LR20257713',
+  'LR20251231',
+  'LR20253639',
+  'LR20254338',
+  'LR20252184',
+  'LR20254164',
+  'LR20256388',
+  'LR20257359',
+  'LR20253442'
+]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 CRITICAL: File Processing Loop Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files received in API: 2
+Files array: [
+  {
+    name: 'invoice_INV-24001.pdf',
+    size: 4348,
+    type: 'application/pdf'
+  },
+  {
+    name: 'invoice_INV-24002.pdf',
+    size: 4323,
+    type: 'application/pdf'
+  }
+]
+Loop type: for loop with await (correct)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 PROCESSING FILE 1/2: invoice_INV-24001.pdf
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Processing file 1/2: invoice_INV-24001.pdf
+📤 Uploading to storage: invoice/1764193364083-invoice_INV-24001.pdf
+🔍 Running OCR on invoice_INV-24001.pdf...
+📄 Raw Gemini OCR Response (first 1000 chars): ```json
+{
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceNo": "INV-24001",
+    "invoiceDate": "2025-01-15",
+    "lrNo": "LR20257713",
+    "lcuNo": "LCU95304199",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 47727.03,
+    "tollCharges": 516.75,
+    "unloadingCharges": 1052.18,
+    "otherAddOnCharges": 0.00,
+    "subtotalBeforeTax": 49295.96,
+    "sgst": 2957.76,
+    "cgst": 2957.76,
+    "totalPayableAmount": 58169.23
+  },
+  "materialDetails": {
+    "description": "Industrial chemicals (non-hazardous)",
+    "quantityKg": 1764,
+    "packages": "18 Drums"
+  }
+}
+```
+🔍 Found LR Number in raw text (fallback): "LR20257713"
+✅ Parsed OCR JSON: {
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceNo": "INV-24001",
+    "invoiceDate": "2025-01-15",
+    "lrNo": "LR20257713",
+    "lcuNo": "LCU95304199",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 47727.03,
+    "tollCharges": 516.75,
+    "unloadingCharges": 1052.18,
+    "otherAddOnCharges": 0,
+    "subtotalBeforeTax": 49295.96,
+    "sgst": 2957.76,
+    "cgst": 2957.76,
+    "totalPayableAmount": 58169.23
+  },
+  "materialDetails": {
+    "description": "Industrial chemicals (non-hazardous)",
+    "quantityKg": 1764,
+    "packages": "18 Drums"
+  }
+}
+🔍 Found LR Number in invoiceDetails.lrNo: "LR20257713"
+🔍 LR Number extraction attempt: {
+  invoiceDetails_lrNo: 'LR20257713',
+  journeyNumber: undefined,
+  journey_number: undefined,
+  lrNumber: undefined,
+  lr_number: undefined,
+  lrNo: undefined,
+  lr_no: undefined,
+  tripId: undefined,
+  trip_id: undefined,
+  lrId: undefined,
+  lr_id: undefined,
+  allKeys: [ 'invoiceDetails', 'chargeBreakup', 'materialDetails' ],
+  fallbackLRNumber: 'LR20257713',
+  extracted: 'LR20257713'
+}
+📋 Final Extracted LR Number (journeyNumber): "LR20257713"
+📋 Full OCR Result Summary: {
+  journeyNumber: 'LR20257713',
+  vehicleNumber: null,
+  loadId: 'LCU95304199',
+  invoiceNumber: 'INV-24001',
+  baseFreight: 47727.03,
+  totalAmount: 58169.23,
+  chargesCount: 4
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 4: OCR Parsed Data Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24001.pdf
+OCR Extracted journeyNumber: LR20257713
+OCR journeyNumber type: string
+OCR journeyNumber value: "LR20257713"
+Full OCR Result Object Keys: [
+  'journeyNumber',
+  'vehicleNumber',
+  'loadId',
+  'invoiceNumber',
+  'baseFreight',
+  'totalAmount',
+  'charges',
+  'confidence',
+  'rawResponse',
+  'invoiceDetails',
+  'chargeBreakup',
+  'materialDetails'
+]
+Raw OCR Data (first level): {
+  journeyNumber: 'LR20257713',
+  invoiceDetails: [
+    'transporter',
+    'consignor',
+    'invoiceNo',
+    'invoiceDate',
+    'lrNo',
+    'lcuNo',
+    'origin',
+    'destination'
+  ],
+  chargeBreakup: [
+    'baseFreight',
+    'tollCharges',
+    'unloadingCharges',
+    'otherAddOnCharges',
+    'subtotalBeforeTax',
+    'sgst',
+    'cgst',
+    'totalPayableAmount'
+  ]
+}
+invoiceDetails.lrNo: LR20257713
+invoiceDetails.lrNo type: string
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 MATCHING PROCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Finding matching journey:
+   OCR LR (raw): "LR20257713"
+   OCR LR (normalized): "LR20257713"
+   OCR Load ID/LCU (raw): "LCU95304199"
+   OCR Load ID/LCU (normalized): "LCU95304199"
+   Available journeys: 9
+   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅
+      OCR LR: "LR20257713"
+      DB journey_number: "LR20257713" (normalized: "LR20257713")
+      Journey ID: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+✅ Match Result: Journey ID b37aff14-a998-4b8e-b868-ddc7fb43c5ae matched!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 Final match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  journeyLR: 'LR20257713',
+  details: [ 'LR Number matched: LR20257713 = LR20257713' ]
+}
+🎯 Match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  details: [ 'LR Number matched: LR20257713 = LR20257713' ]
+}
+⚠️ Journey matched (LR: LR20257713) but no proforma found
+   This means journey exists but no contract to compare
+   Setting status to 'mismatch' (needs review)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟡🟡🟡 PREPARING TO INSERT bulk_job_item 🟡🟡🟡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24001.pdf
+Job ID: d3cda371-218c-4821-8e2c-61467ff2610d
+Job ID type: string
+Match Status: matched
+LR Number from OCR: LR20257713
+Journey ID: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+Storage Path: invoice/1764193364083-invoice_INV-24001.pdf
+Table Name: bulk_job_items (VERIFY THIS MATCHES YOUR DB!)
+Supabase URL: https://jflpynnmhjpqddseixzj.supabase.co
+
+Item Payload (first level keys):
+  bulk_job_id: d3cda371-218c-4821-8e2c-61467ff2610d
+  file_name: invoice_INV-24001.pdf
+  storage_path: invoice/1764193364083-invoice_INV-24001.pdf
+  journey_id: b37aff14-a998-4b8e-b868-ddc7fb43c5ae
+  match_status: matched
+  match_details: {"matchScore":100,"matchReason":"LR Number matched: LR20257713 = LR20257713","matchDetails":["LR Number matched: LR20257713 = LR20257713"],"isMatched":true}
+  ocr_extracted_data keys: [
+  'journeyNumber',   'vehicleNumber',
+  'loadId',          'invoiceNumber',
+  'baseFreight',     'totalAmount',
+  'charges',         'confidence',
+  'rawResponse',     'error',
+  'invoiceDetails',  'chargeBreakup',
+  'materialDetails', 'chargeVariances',
+  'proformaData',    'fileUrl'
+]
+
+Full Item Data (JSON):
+{
+  "bulk_job_id": "d3cda371-218c-4821-8e2c-61467ff2610d",
+  "file_name": "invoice_INV-24001.pdf",
+  "storage_path": "invoice/1764193364083-invoice_INV-24001.pdf",
+  "journey_id": "b37aff14-a998-4b8e-b868-ddc7fb43c5ae",
+  "proforma_id": null,
+  "ocr_extracted_data": {
+    "journeyNumber": "LR20257713",
+    "vehicleNumber": null,
+    "loadId": "LCU95304199",
+    "invoiceNumber": "INV-24001",
+    "baseFreight": 47727.03,
+    "totalAmount": 58169.23,
+    "charges": [
+      {
+        "type": "Toll Charges",
+        "amount": 516.75
+      },
+      {
+        "type": "Unloading Charges",
+        "amount": 1052.18
+      },
+      {
+        "type": "SGST",
+        "amount": 2957.76
+      },
+      {
+        "type": "CGST",
+        "amount": 2957.76
+      }
+    ],
+    "confidence": 0.8,
+    "rawResponse": {
+      "content": "```json\n{\n  \"invoiceDetails\": {\n    \"transporter\": \"Global Logistics Inc\",\n    \"consignor\": \"Acme Chemicals Pvt Ltd\",\n    \"invoiceNo\": \"INV-24001\",\n    \"invoiceDate\": \"2025-01-15\",\n    \"lrNo\": \"LR20257713\",\n    \"lcuNo\": \"LCU95304199\",\n    \"origin\": \"Bangalore, KA\",\n    \"destination\": \"Surat, GJ\"\n  },\n  \"chargeBreakup\": {\n    \"baseFreight\": 47727.03,\n    \"tollCharges\": 516.75,\n    \"unloadingCharges\": 1052.18,\n    \"otherAddOnCharges\": 0.00,\n    \"subtotalBeforeTax\": 49295.96,\n    \"sgst\": 2957.76,\n    \"cgst\": 2957.76,\n    \"totalPayableAmount\": 58169.23\n  },\n  \"materialDetails\": {\n    \"description\": \"Industrial chemicals (non-hazardous)\",\n    \"quantityKg\": 1764,\n    \"packages\": \"18 Drums\"\n  }\n}\n```",
+      "parsed": {
+        "invoiceDetails": {
+          "transporter": "Global Logistics Inc",
+          "consignor": "Acme Chemicals Pvt Ltd",
+          "invoiceNo": "INV-24001",
+          "invoiceDate": "2025-01-15",
+          "lrNo": "LR20257713",
+          "lcuNo": "LCU95304199",
+          "origin": "Bangalore, KA",
+          "destination": "Surat, GJ"
+        },
+        "chargeBreakup": {
+          "baseFreight": 47727.03,
+          "tollCharges": 516.75,
+          "unloadingCharges": 1052.18,
+          "otherAddOnCharges": 0,
+          "subtotalBeforeTax": 49295.96,
+          "sgst": 2957.76,
+          "cgst": 2957.76,
+          "totalPayableAmount": 58169.23
+        },
+        "materialDetails": {
+          "description": "Industrial chemicals (non-hazardous)",
+          "quantityKg": 1764,
+          "packages": "18 Drums"
+        }
+      }
+    },
+    "error": null,
+    "invoiceDetails": {
+      "transporter": "Global Logistics Inc",
+      "consignor": "Acme Chemicals Pvt Ltd",
+      "invoiceNo": "INV-24001",
+      "invoiceDate": "2025-01-15",
+      "lrNo": "LR20257713",
+      "lcuNo": "LCU95304199",
+      "origin": "Bangalore, KA",
+      "destination": "Surat, GJ"
+    },
+    "chargeBreakup": {
+      "baseFreight": 47727.03,
+      "tollCharges": 516.75,
+      "unloadingCharges": 1052.18,
+      "otherAddOnCharges": 0,
+      "subtotalBeforeTax": 49295.96,
+      "sgst": 2957.76,
+      "cgst": 2957.76,
+      "totalPayableAmount": 58169.23
+    },
+    "materialDetails": {
+      "description": "Industrial chemicals (non-hazardous)",
+      "quantityKg": 1764,
+      "packages": "18 Drums"
+    },
+    "chargeVariances": null,
+    "proformaData": null,
+    "fileUrl": "https://jflpynnmhjpqddseixzj.supabase.co/storage/v1/object/public/documents/invoice/1764193364083-invoice_INV-24001.pdf"
+  },
+  "match_status": "matched",
+  "match_details": {
+    "matchScore": 100,
+    "matchReason": "LR Number matched: LR20257713 = LR20257713",
+    "matchDetails": [
+      "LR Number matched: LR20257713 = LR20257713"
+    ],
+    "isMatched": true
+  }
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💾 Executing INSERT into bulk_job_items...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅✅✅ SUCCESSFULLY INSERTED bulk_job_item ✅✅✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Insert Duration: 179ms
+Inserted Item ID: a22ac136-073c-4cd0-9d29-1ba4e4aa3efd
+Inserted Item Data: {
+  id: 'a22ac136-073c-4cd0-9d29-1ba4e4aa3efd',
+  bulk_job_id: 'd3cda371-218c-4821-8e2c-61467ff2610d',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'matched'
+}
+
+Verify in Supabase:
+  SELECT * FROM bulk_job_items WHERE id = 'a22ac136-073c-4cd0-9d29-1ba4e4aa3efd';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Completed processing file 1/2: invoice_INV-24001.pdf
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 PROCESSING FILE 2/2: invoice_INV-24002.pdf
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Processing file 2/2: invoice_INV-24002.pdf
+📤 Uploading to storage: invoice/1764193368362-invoice_INV-24002.pdf
+🔍 Running OCR on invoice_INV-24002.pdf...
+📄 Raw Gemini OCR Response (first 1000 chars): ```json
+{
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme FMCG Distributors",
+    "invoiceNo": "INV-24002",
+    "invoiceDate": "2025-01-18",
+    "lrNo": "LR20251231",
+    "lcuNo": "LCU44201397",
+    "origin": "Mumbai, MH",
+    "destination": "Ahmedabad, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 85195.65,
+    "tollCharges": 3892.15,
+    "unloadingCharges": 3000.00,
+    "otherAddOnCharges": 0.00,
+    "subtotalBeforeTax": 92087.80,
+    "sgst": 5525.27,
+    "cgst": 5525.27,
+    "totalPayableAmount": 108663.60
+  },
+  "materialDetails": {
+    "description": "FMCG cartons",
+    "quantityKg": 9200,
+    "packages": "460 Cartons"
+  }
+}
+```
+🔍 Found LR Number in raw text (fallback): "LR20251231"
+✅ Parsed OCR JSON: {
+  "invoiceDetails": {
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme FMCG Distributors",
+    "invoiceNo": "INV-24002",
+    "invoiceDate": "2025-01-18",
+    "lrNo": "LR20251231",
+    "lcuNo": "LCU44201397",
+    "origin": "Mumbai, MH",
+    "destination": "Ahmedabad, GJ"
+  },
+  "chargeBreakup": {
+    "baseFreight": 85195.65,
+    "tollCharges": 3892.15,
+    "unloadingCharges": 3000,
+    "otherAddOnCharges": 0,
+    "subtotalBeforeTax": 92087.8,
+    "sgst": 5525.27,
+    "cgst": 5525.27,
+    "totalPayableAmount": 108663.6
+  },
+  "materialDetails": {
+    "description": "FMCG cartons",
+    "quantityKg": 9200,
+    "packages": "460 Cartons"
+  }
+}
+🔍 Found LR Number in invoiceDetails.lrNo: "LR20251231"
+🔍 LR Number extraction attempt: {
+  invoiceDetails_lrNo: 'LR20251231',
+  journeyNumber: undefined,
+  journey_number: undefined,
+  lrNumber: undefined,
+  lr_number: undefined,
+  lrNo: undefined,
+  lr_no: undefined,
+  tripId: undefined,
+  trip_id: undefined,
+  lrId: undefined,
+  lr_id: undefined,
+  allKeys: [ 'invoiceDetails', 'chargeBreakup', 'materialDetails' ],
+  fallbackLRNumber: 'LR20251231',
+  extracted: 'LR20251231'
+}
+📋 Final Extracted LR Number (journeyNumber): "LR20251231"
+📋 Full OCR Result Summary: {
+  journeyNumber: 'LR20251231',
+  vehicleNumber: null,
+  loadId: 'LCU44201397',
+  invoiceNumber: 'INV-24002',
+  baseFreight: 85195.65,
+  totalAmount: 108663.6,
+  chargesCount: 4
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 4: OCR Parsed Data Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24002.pdf
+OCR Extracted journeyNumber: LR20251231
+OCR journeyNumber type: string
+OCR journeyNumber value: "LR20251231"
+Full OCR Result Object Keys: [
+  'journeyNumber',
+  'vehicleNumber',
+  'loadId',
+  'invoiceNumber',
+  'baseFreight',
+  'totalAmount',
+  'charges',
+  'confidence',
+  'rawResponse',
+  'invoiceDetails',
+  'chargeBreakup',
+  'materialDetails'
+]
+Raw OCR Data (first level): {
+  journeyNumber: 'LR20251231',
+  invoiceDetails: [
+    'transporter',
+    'consignor',
+    'invoiceNo',
+    'invoiceDate',
+    'lrNo',
+    'lcuNo',
+    'origin',
+    'destination'
+  ],
+  chargeBreakup: [
+    'baseFreight',
+    'tollCharges',
+    'unloadingCharges',
+    'otherAddOnCharges',
+    'subtotalBeforeTax',
+    'sgst',
+    'cgst',
+    'totalPayableAmount'
+  ]
+}
+invoiceDetails.lrNo: LR20251231
+invoiceDetails.lrNo type: string
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 MATCHING PROCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Finding matching journey:
+   OCR LR (raw): "LR20251231"
+   OCR LR (normalized): "LR20251231"
+   OCR Load ID/LCU (raw): "LCU44201397"
+   OCR Load ID/LCU (normalized): "LCU44201397"
+   Available journeys: 9
+   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅
+      OCR LR: "LR20251231"
+      DB journey_number: "LR20251231" (normalized: "LR20251231")
+      Journey ID: da93253c-3827-4db2-af78-acc883eb7518
+✅ Match Result: Journey ID da93253c-3827-4db2-af78-acc883eb7518 matched!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 Final match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'da93253c-3827-4db2-af78-acc883eb7518',
+  journeyLR: 'LR20251231',
+  details: [ 'LR Number matched: LR20251231 = LR20251231' ]
+}
+🎯 Match result: {
+  matched: true,
+  score: 100,
+  journeyId: 'da93253c-3827-4db2-af78-acc883eb7518',
+  details: [ 'LR Number matched: LR20251231 = LR20251231' ]
+}
+⚠️ Journey matched (LR: LR20251231) but no proforma found
+   This means journey exists but no contract to compare
+   Setting status to 'mismatch' (needs review)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟡🟡🟡 PREPARING TO INSERT bulk_job_item 🟡🟡🟡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24002.pdf
+Job ID: d3cda371-218c-4821-8e2c-61467ff2610d
+Job ID type: string
+Match Status: matched
+LR Number from OCR: LR20251231
+Journey ID: da93253c-3827-4db2-af78-acc883eb7518
+Storage Path: invoice/1764193368362-invoice_INV-24002.pdf
+Table Name: bulk_job_items (VERIFY THIS MATCHES YOUR DB!)
+Supabase URL: https://jflpynnmhjpqddseixzj.supabase.co
+
+Item Payload (first level keys):
+  bulk_job_id: d3cda371-218c-4821-8e2c-61467ff2610d
+  file_name: invoice_INV-24002.pdf
+  storage_path: invoice/1764193368362-invoice_INV-24002.pdf
+  journey_id: da93253c-3827-4db2-af78-acc883eb7518
+  match_status: matched
+  match_details: {"matchScore":100,"matchReason":"LR Number matched: LR20251231 = LR20251231","matchDetails":["LR Number matched: LR20251231 = LR20251231"],"isMatched":true}
+  ocr_extracted_data keys: [
+  'journeyNumber',   'vehicleNumber',
+  'loadId',          'invoiceNumber',
+  'baseFreight',     'totalAmount',
+  'charges',         'confidence',
+  'rawResponse',     'error',
+  'invoiceDetails',  'chargeBreakup',
+  'materialDetails', 'chargeVariances',
+  'proformaData',    'fileUrl'
+]
+
+Full Item Data (JSON):
+{
+  "bulk_job_id": "d3cda371-218c-4821-8e2c-61467ff2610d",
+  "file_name": "invoice_INV-24002.pdf",
+  "storage_path": "invoice/1764193368362-invoice_INV-24002.pdf",
+  "journey_id": "da93253c-3827-4db2-af78-acc883eb7518",
+  "proforma_id": null,
+  "ocr_extracted_data": {
+    "journeyNumber": "LR20251231",
+    "vehicleNumber": null,
+    "loadId": "LCU44201397",
+    "invoiceNumber": "INV-24002",
+    "baseFreight": 85195.65,
+    "totalAmount": 108663.6,
+    "charges": [
+      {
+        "type": "Toll Charges",
+        "amount": 3892.15
+      },
+      {
+        "type": "Unloading Charges",
+        "amount": 3000
+      },
+      {
+        "type": "SGST",
+        "amount": 5525.27
+      },
+      {
+        "type": "CGST",
+        "amount": 5525.27
+      }
+    ],
+    "confidence": 0.8,
+    "rawResponse": {
+      "content": "```json\n{\n  \"invoiceDetails\": {\n    \"transporter\": \"Global Logistics Inc\",\n    \"consignor\": \"Acme FMCG Distributors\",\n    \"invoiceNo\": \"INV-24002\",\n    \"invoiceDate\": \"2025-01-18\",\n    \"lrNo\": \"LR20251231\",\n    \"lcuNo\": \"LCU44201397\",\n    \"origin\": \"Mumbai, MH\",\n    \"destination\": \"Ahmedabad, GJ\"\n  },\n  \"chargeBreakup\": {\n    \"baseFreight\": 85195.65,\n    \"tollCharges\": 3892.15,\n    \"unloadingCharges\": 3000.00,\n    \"otherAddOnCharges\": 0.00,\n    \"subtotalBeforeTax\": 92087.80,\n    \"sgst\": 5525.27,\n    \"cgst\": 5525.27,\n    \"totalPayableAmount\": 108663.60\n  },\n  \"materialDetails\": {\n    \"description\": \"FMCG cartons\",\n    \"quantityKg\": 9200,\n    \"packages\": \"460 Cartons\"\n  }\n}\n```",
+      "parsed": {
+        "invoiceDetails": {
+          "transporter": "Global Logistics Inc",
+          "consignor": "Acme FMCG Distributors",
+          "invoiceNo": "INV-24002",
+          "invoiceDate": "2025-01-18",
+          "lrNo": "LR20251231",
+          "lcuNo": "LCU44201397",
+          "origin": "Mumbai, MH",
+          "destination": "Ahmedabad, GJ"
+        },
+        "chargeBreakup": {
+          "baseFreight": 85195.65,
+          "tollCharges": 3892.15,
+          "unloadingCharges": 3000,
+          "otherAddOnCharges": 0,
+          "subtotalBeforeTax": 92087.8,
+          "sgst": 5525.27,
+          "cgst": 5525.27,
+          "totalPayableAmount": 108663.6
+        },
+        "materialDetails": {
+          "description": "FMCG cartons",
+          "quantityKg": 9200,
+          "packages": "460 Cartons"
+        }
+      }
+    },
+    "error": null,
+    "invoiceDetails": {
+      "transporter": "Global Logistics Inc",
+      "consignor": "Acme FMCG Distributors",
+      "invoiceNo": "INV-24002",
+      "invoiceDate": "2025-01-18",
+      "lrNo": "LR20251231",
+      "lcuNo": "LCU44201397",
+      "origin": "Mumbai, MH",
+      "destination": "Ahmedabad, GJ"
+    },
+    "chargeBreakup": {
+      "baseFreight": 85195.65,
+      "tollCharges": 3892.15,
+      "unloadingCharges": 3000,
+      "otherAddOnCharges": 0,
+      "subtotalBeforeTax": 92087.8,
+      "sgst": 5525.27,
+      "cgst": 5525.27,
+      "totalPayableAmount": 108663.6
+    },
+    "materialDetails": {
+      "description": "FMCG cartons",
+      "quantityKg": 9200,
+      "packages": "460 Cartons"
+    },
+    "chargeVariances": null,
+    "proformaData": null,
+    "fileUrl": "https://jflpynnmhjpqddseixzj.supabase.co/storage/v1/object/public/documents/invoice/1764193368362-invoice_INV-24002.pdf"
+  },
+  "match_status": "matched",
+  "match_details": {
+    "matchScore": 100,
+    "matchReason": "LR Number matched: LR20251231 = LR20251231",
+    "matchDetails": [
+      "LR Number matched: LR20251231 = LR20251231"
+    ],
+    "isMatched": true
+  }
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💾 Executing INSERT into bulk_job_items...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅✅✅ SUCCESSFULLY INSERTED bulk_job_item ✅✅✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Insert Duration: 173ms
+Inserted Item ID: 4bcd3135-dc49-45ec-83e7-875c8b73ab7c
+Inserted Item Data: {
+  id: '4bcd3135-dc49-45ec-83e7-875c8b73ab7c',
+  bulk_job_id: 'd3cda371-218c-4821-8e2c-61467ff2610d',
+  file_name: 'invoice_INV-24002.pdf',
+  match_status: 'matched'
+}
+
+Verify in Supabase:
+  SELECT * FROM bulk_job_items WHERE id = '4bcd3135-dc49-45ec-83e7-875c8b73ab7c';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Completed processing file 2/2: invoice_INV-24002.pdf
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 FILE PROCESSING LOOP COMPLETED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files processed: 2
+Matched: 2
+Needs Review: 0
+Failed: 0
+
+If processedItems.length === 0, the loop never executed!
+If processedItems.length < files.length, some files failed!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 VERIFYING ITEMS IN DATABASE BEFORE UPDATING JOB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Items found in database for job d3cda371-218c-4821-8e2c-61467ff2610d: 2
+✅ Items exist in database:
+  1. ID: a22ac136-073c-4cd0-9d29-1ba4e4aa3efd, File: invoice_INV-24001.pdf, Match Status: matched
+  2. ID: 4bcd3135-dc49-45ec-83e7-875c8b73ab7c, File: invoice_INV-24002.pdf, Match Status: matched
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Updating bulk job d3cda371-218c-4821-8e2c-61467ff2610d with final counts...
+✅ Bulk job updated successfully
+✅ Completed: 2 matched
+GET /api/bulk-jobs/d3cda371-218c-4821-8e2c-61467ff2610d
+📊 Fetching bulk job: d3cda371-218c-4821-8e2c-61467ff2610d
+📊 Found 2 items for job d3cda371-218c-4821-8e2c-61467ff2610d
+📋 Raw items from database:
+  Item 1: {
+  id: 'a22ac136-073c-4cd0-9d29-1ba4e4aa3efd',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+  Item 2: {
+  id: '4bcd3135-dc49-45ec-83e7-875c8b73ab7c',
+  file_name: 'invoice_INV-24002.pdf',
+  match_status: 'matched',
+  journey_id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/bulk-jobs/d3cda371-218c-4821-8e2c-61467ff2610d
+📊 Fetching bulk job: d3cda371-218c-4821-8e2c-61467ff2610d
+📊 Found 2 items for job d3cda371-218c-4821-8e2c-61467ff2610d
+📋 Raw items from database:
+  Item 1: {
+  id: 'a22ac136-073c-4cd0-9d29-1ba4e4aa3efd',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+  Item 2: {
+  id: '4bcd3135-dc49-45ec-83e7-875c8b73ab7c',
+  file_name: 'invoice_INV-24002.pdf',
+  match_status: 'matched',
+  journey_id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/bulk-jobs/d3cda371-218c-4821-8e2c-61467ff2610d
+📊 Fetching bulk job: d3cda371-218c-4821-8e2c-61467ff2610d
+📊 Found 2 items for job d3cda371-218c-4821-8e2c-61467ff2610d
+📋 Raw items from database:
+  Item 1: {
+  id: 'a22ac136-073c-4cd0-9d29-1ba4e4aa3efd',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'matched',
+  journey_id: 'b37aff14-a998-4b8e-b868-ddc7fb43c5ae',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+  Item 2: {
+  id: '4bcd3135-dc49-45ec-83e7-875c8b73ab7c',
+  file_name: 'invoice_INV-24002.pdf',
+  match_status: 'matched',
+  journey_id: 'da93253c-3827-4db2-af78-acc883eb7518',
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/proformas?limit=200
+📊 Fetching proformas...
+✅ Found 22 proformas
+POST /api/bulk-upload
+📤 Bulk upload request received
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 5: Environment/Tenant Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 Bulk upload request received:
+   Type: POD
+   Journey IDs from Frontend: [
+  "0640cb29-5550-4375-962b-807ddb4eb227"
+]
+   Journey IDs count: 1
+   Files count: 1
+   Environment check: { supabaseUrl: '✅ Set', supabaseKey: '✅ Set', geminiKey: '✅ Set' }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Processing 1 files for 1 journeys
+✅ Created bulk job: 9b16914f-e814-48c5-976a-67d502223a34
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 STEP 1: Fetching Journeys
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs received from frontend: [
+  "0640cb29-5550-4375-962b-807ddb4eb227"
+]
+Journey IDs count: 1
+Journey IDs types: [
+  {
+    id: '0640cb29-5550-4375-962b-807ddb4eb227',
+    type: 'string',
+    isUUID: true
+  }
+]
+📋 Validating journey IDs:
+   Total received: 1
+   Valid UUIDs: 1
+   Invalid IDs: 0
+✅ Fetched 1 journeys
+   Journey 1: {
+  id: '0640cb29-5550-4375-962b-807ddb4eb227',
+  journey_number: 'LR20251290',
+  load_id: 'LCU98765432',
+  vehicle_number: 'MH18AB1353'
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Loaded 1 journeys for matching
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 1: Journey Loading Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Journey IDs from Frontend: [
+  "0640cb29-5550-4375-962b-807ddb4eb227"
+]
+Journeys loaded count: 1
+✅ Journeys fetched for job (bulk job will be created):
+  Journey 1: {
+  id: '0640cb29-5550-4375-962b-807ddb4eb227',
+  journey_number: 'LR20251290',
+  vehicle_number: 'MH18AB1353',
+  load_id: 'LCU98765432',
+  hasProforma: 'N/A',
+  proformaId: null
+}
+📋 All journey_number values available for matching: [ 'LR20251290' ]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 CRITICAL: File Processing Loop Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files received in API: 1
+Files array: [
+  {
+    name: 'invoice_INV-24001.pdf',
+    size: 4348,
+    type: 'application/pdf'
+  }
+]
+Loop type: for loop with await (correct)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 PROCESSING FILE 1/1: invoice_INV-24001.pdf
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Processing file 1/1: invoice_INV-24001.pdf
+📤 Uploading to storage: pod/1764193887021-invoice_INV-24001.pdf
+🔍 Running OCR on invoice_INV-24001.pdf...
+📄 Raw Gemini OCR Response (first 1000 chars): ```json
+{
+  "journeyNumber": "LR20257713",
+  "vehicleNumber": null,
+  "loadId": "LCU95304199",
+  "charges": [
+    {
+      "type": "Base Freight",
+      "amount": 47727.03
+    },
+    {
+      "type": "Toll Charges",
+      "amount": 516.75
+    },
+    {
+      "type": "Unloading Charges",
+      "amount": 1052.18
+    },
+    {
+      "type": "Other Add-on Charges",
+      "amount": 0.00
+    },
+    {
+      "type": "SGST",
+      "amount": 2957.76
+    },
+    {
+      "type": "CGST",
+      "amount": 2957.76
+    }
+  ],
+  "totalAmount": 58169.23,
+  "confidence": 0.95
+}
+```
+🔍 Found LR Number in raw text (fallback): "LR20257713"
+✅ Parsed OCR JSON: {
+  "journeyNumber": "LR20257713",
+  "vehicleNumber": null,
+  "loadId": "LCU95304199",
+  "charges": [
+    {
+      "type": "Base Freight",
+      "amount": 47727.03
+    },
+    {
+      "type": "Toll Charges",
+      "amount": 516.75
+    },
+    {
+      "type": "Unloading Charges",
+      "amount": 1052.18
+    },
+    {
+      "type": "Other Add-on Charges",
+      "amount": 0
+    },
+    {
+      "type": "SGST",
+      "amount": 2957.76
+    },
+    {
+      "type": "CGST",
+      "amount": 2957.76
+    }
+  ],
+  "totalAmount": 58169.23,
+  "confidence": 0.95
+}
+🔍 LR Number extraction attempt: {
+  invoiceDetails_lrNo: undefined,
+  journeyNumber: 'LR20257713',
+  journey_number: undefined,
+  lrNumber: undefined,
+  lr_number: undefined,
+  lrNo: undefined,
+  lr_no: undefined,
+  tripId: undefined,
+  trip_id: undefined,
+  lrId: undefined,
+  lr_id: undefined,
+  allKeys: [
+    'journeyNumber',
+    'vehicleNumber',
+    'loadId',
+    'charges',
+    'totalAmount',
+    'confidence'
+  ],
+  fallbackLRNumber: 'LR20257713',
+  extracted: 'LR20257713'
+}
+📋 Final Extracted LR Number (journeyNumber): "LR20257713"
+📋 Full OCR Result Summary: {
+  journeyNumber: 'LR20257713',
+  vehicleNumber: null,
+  loadId: 'LCU95304199',
+  invoiceNumber: undefined,
+  baseFreight: undefined,
+  totalAmount: 58169.23,
+  chargesCount: 6
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DEBUG STEP 4: OCR Parsed Data Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24001.pdf
+OCR Extracted journeyNumber: LR20257713
+OCR journeyNumber type: string
+OCR journeyNumber value: "LR20257713"
+Full OCR Result Object Keys: [
+  'journeyNumber',
+  'vehicleNumber',
+  'loadId',
+  'charges',
+  'totalAmount',
+  'confidence',
+  'rawResponse'
+]
+Raw OCR Data (first level): {
+  journeyNumber: 'LR20257713',
+  invoiceDetails: null,
+  chargeBreakup: null
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 MATCHING PROCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Finding matching journey:
+   OCR LR (raw): "LR20257713"
+   OCR LR (normalized): "LR20257713"
+   OCR Load ID/LCU (raw): "LCU95304199"
+   OCR Load ID/LCU (normalized): "LCU95304199"
+   Available journeys: 1
+   ❌ NO MATCH FOUND
+   Available journey_number (LR) values: [ 'LR20251290' ]
+   Available load_id (LCU) values: [ 'LCU98765432' ]
+❌ Match Result: No journey matched
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 Final match result: {
+  matched: false,
+  score: 0,
+  journeyId: undefined,
+  journeyLR: undefined,
+  details: [ 'No matching journey found for LR: LR20257713' ]
+}
+🎯 Match result: {
+  matched: false,
+  score: 0,
+  journeyId: undefined,
+  details: [ 'No matching journey found for LR: LR20257713' ]
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟡🟡🟡 PREPARING TO INSERT bulk_job_item 🟡🟡🟡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: invoice_INV-24001.pdf
+Job ID: 9b16914f-e814-48c5-976a-67d502223a34
+Job ID type: string
+Match Status: mismatch
+LR Number from OCR: LR20257713
+Journey ID: null
+Storage Path: pod/1764193887021-invoice_INV-24001.pdf
+Table Name: bulk_job_items (VERIFY THIS MATCHES YOUR DB!)
+Supabase URL: https://jflpynnmhjpqddseixzj.supabase.co
+
+Item Payload (first level keys):
+  bulk_job_id: 9b16914f-e814-48c5-976a-67d502223a34
+  file_name: invoice_INV-24001.pdf
+  storage_path: pod/1764193887021-invoice_INV-24001.pdf
+  journey_id: null
+  match_status: mismatch
+  match_details: {"matchScore":0,"matchReason":"No matching journey found for LR: LR20257713","matchDetails":["No matching journey found for LR: LR20257713"],"isMatched":false}
+  ocr_extracted_data keys: [
+  'journeyNumber',   'vehicleNumber',
+  'loadId',          'invoiceNumber',
+  'baseFreight',     'totalAmount',
+  'charges',         'confidence',
+  'rawResponse',     'error',
+  'invoiceDetails',  'chargeBreakup',
+  'materialDetails', 'chargeVariances',
+  'proformaData',    'fileUrl'
+]
+
+Full Item Data (JSON):
+{
+  "bulk_job_id": "9b16914f-e814-48c5-976a-67d502223a34",
+  "file_name": "invoice_INV-24001.pdf",
+  "storage_path": "pod/1764193887021-invoice_INV-24001.pdf",
+  "journey_id": null,
+  "proforma_id": null,
+  "ocr_extracted_data": {
+    "journeyNumber": "LR20257713",
+    "vehicleNumber": null,
+    "loadId": "LCU95304199",
+    "invoiceNumber": null,
+    "baseFreight": null,
+    "totalAmount": 58169.23,
+    "charges": [
+      {
+        "type": "Base Freight",
+        "amount": 47727.03
+      },
+      {
+        "type": "Toll Charges",
+        "amount": 516.75
+      },
+      {
+        "type": "Unloading Charges",
+        "amount": 1052.18
+      },
+      {
+        "type": "Other Add-on Charges",
+        "amount": 0
+      },
+      {
+        "type": "SGST",
+        "amount": 2957.76
+      },
+      {
+        "type": "CGST",
+        "amount": 2957.76
+      }
+    ],
+    "confidence": 0.95,
+    "rawResponse": {
+      "content": "```json\n{\n  \"journeyNumber\": \"LR20257713\",\n  \"vehicleNumber\": null,\n  \"loadId\": \"LCU95304199\",\n  \"charges\": [\n    {\n      \"type\": \"Base Freight\",\n      \"amount\": 47727.03\n    },\n    {\n      \"type\": \"Toll Charges\",\n      \"amount\": 516.75\n    },\n    {\n      \"type\": \"Unloading Charges\",\n      \"amount\": 1052.18\n    },\n    {\n      \"type\": \"Other Add-on Charges\",\n      \"amount\": 0.00\n    },\n    {\n      \"type\": \"SGST\",\n      \"amount\": 2957.76\n    },\n    {\n      \"type\": \"CGST\",\n      \"amount\": 2957.76\n    }\n  ],\n  \"totalAmount\": 58169.23,\n  \"confidence\": 0.95\n}\n```",
+      "parsed": {
+        "journeyNumber": "LR20257713",
+        "vehicleNumber": null,
+        "loadId": "LCU95304199",
+        "charges": [
+          {
+            "type": "Base Freight",
+            "amount": 47727.03
+          },
+          {
+            "type": "Toll Charges",
+            "amount": 516.75
+          },
+          {
+            "type": "Unloading Charges",
+            "amount": 1052.18
+          },
+          {
+            "type": "Other Add-on Charges",
+            "amount": 0
+          },
+          {
+            "type": "SGST",
+            "amount": 2957.76
+          },
+          {
+            "type": "CGST",
+            "amount": 2957.76
+          }
+        ],
+        "totalAmount": 58169.23,
+        "confidence": 0.95
+      }
+    },
+    "error": null,
+    "invoiceDetails": null,
+    "chargeBreakup": null,
+    "materialDetails": null,
+    "chargeVariances": null,
+    "proformaData": null,
+    "fileUrl": "https://jflpynnmhjpqddseixzj.supabase.co/storage/v1/object/public/documents/pod/1764193887021-invoice_INV-24001.pdf"
+  },
+  "match_status": "mismatch",
+  "match_details": {
+    "matchScore": 0,
+    "matchReason": "No matching journey found for LR: LR20257713",
+    "matchDetails": [
+      "No matching journey found for LR: LR20257713"
+    ],
+    "isMatched": false
+  }
+}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💾 Executing INSERT into bulk_job_items...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅✅✅ SUCCESSFULLY INSERTED bulk_job_item ✅✅✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Insert Duration: 166ms
+Inserted Item ID: e75a7dc0-a8be-449d-b40a-29623940ff86
+Inserted Item Data: {
+  id: 'e75a7dc0-a8be-449d-b40a-29623940ff86',
+  bulk_job_id: '9b16914f-e814-48c5-976a-67d502223a34',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'mismatch'
+}
+
+Verify in Supabase:
+  SELECT * FROM bulk_job_items WHERE id = 'e75a7dc0-a8be-449d-b40a-29623940ff86';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Completed processing file 1/1: invoice_INV-24001.pdf
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 FILE PROCESSING LOOP COMPLETED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files processed: 1
+Matched: 0
+Needs Review: 1
+Failed: 0
+
+If processedItems.length === 0, the loop never executed!
+If processedItems.length < files.length, some files failed!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 VERIFYING ITEMS IN DATABASE BEFORE UPDATING JOB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Items found in database for job 9b16914f-e814-48c5-976a-67d502223a34: 1
+✅ Items exist in database:
+  1. ID: e75a7dc0-a8be-449d-b40a-29623940ff86, File: invoice_INV-24001.pdf, Match Status: mismatch
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Updating bulk job 9b16914f-e814-48c5-976a-67d502223a34 with final counts...
+✅ Bulk job updated successfully
+✅ Completed: 0 matched
+GET /api/bulk-jobs/9b16914f-e814-48c5-976a-67d502223a34
+📊 Fetching bulk job: 9b16914f-e814-48c5-976a-67d502223a34
+📊 Found 1 items for job 9b16914f-e814-48c5-976a-67d502223a34
+📋 Raw items from database:
+  Item 1: {
+  id: 'e75a7dc0-a8be-449d-b40a-29623940ff86',
+  file_name: 'invoice_INV-24001.pdf',
+  match_status: 'mismatch',
+  journey_id: null,
+  ocr_extracted_data: 'Present',
+  ocr_keys: [
+    'error',           'loadId',
+    'charges',         'fileUrl',
+    'confidence',      'baseFreight',
+    'rawResponse',     'totalAmount',
+    'proformaData',    'chargeBreakup',
+    'invoiceNumber',   'journeyNumber',
+    'vehicleNumber',   'invoiceDetails',
+    'chargeVariances', 'materialDetails'
+  ]
+}
+GET /api/proformas?limit=200
+📊 Fetching proformas...
+✅ Found 22 proformas

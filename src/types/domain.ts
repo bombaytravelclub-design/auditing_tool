@@ -20,6 +20,43 @@ export type JobItemStatus = 'pending' | 'matched' | 'partially_matched' | 'faile
 export type ReviewAction = 'accept' | 'reject' | 'comment';
 
 // ============================================================================
+// OCR RESULT TYPES
+// ============================================================================
+
+export interface PodOcrResult {
+  journeyNumber?: string;
+  vehicleNumber?: string;
+  loadId?: string;
+  charges?: {
+    baseFreight?: number;
+    tollCharges?: number;
+    unloadingCharges?: number;
+    fuelSurcharge?: number;
+    otherCharges?: number;
+    totalAmount?: number;
+  };
+  confidence: number;
+  rawResponse?: any;
+}
+
+export interface InvoiceOcrResult {
+  invoiceNumber?: string;
+  journeyNumber?: string;
+  vehicleNumber?: string;
+  loadId?: string;
+  charges: {
+    baseFreight?: number;
+    tollCharges?: number;
+    unloadingCharges?: number;
+    fuelSurcharge?: number;
+    otherCharges?: number;
+    totalAmount?: number;
+  };
+  confidence: number;
+  rawResponse?: any;
+}
+
+// ============================================================================
 // DATABASE MODELS
 // ============================================================================
 

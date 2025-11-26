@@ -6,7 +6,7 @@ import { JourneyDetailsDrawer } from "@/components/JourneyDetailsDrawer";
 import { Button } from "@/components/ui/button";
 import { Journey } from "@/lib/mockData";
 import { fetchProformas, transformProformaToJourney, calculateSummaryStats, ApiProforma } from "@/lib/api";
-import { priorityApprovedJourneys, transformStaticJourneyData } from "@/lib/staticJourneyData";
+// Removed static journey import - using only real database data
 import { Upload, Calendar, Filter, Loader2, X } from "lucide-react";
 import {
   Select,
@@ -66,13 +66,8 @@ const Index = () => {
       .map(transformProformaToJourney)
       .filter((j): j is Journey => j !== null);
     
-    // Add static priority journeys at the top (only approved ones)
-    const staticJourneys = priorityApprovedJourneys
-      .filter(j => j.status === 'APPROVED') // Only include approved journeys
-      .map(transformStaticJourneyData);
-    
-    // Prepend static journeys to API data
-    return [...staticJourneys, ...apiJourneys];
+    // Return only real database journeys (removed static display journeys)
+    return apiJourneys;
   }, [proformas]);
 
   // Get unique transporters

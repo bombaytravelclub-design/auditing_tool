@@ -37,6 +37,7 @@ CREATE INDEX idx_users_role ON users(role);
 CREATE TABLE journeys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     journey_number VARCHAR(100) UNIQUE NOT NULL,
+    lr_number VARCHAR(100), -- LR Number from invoice/POD (different from journey_number)
     vehicle_number VARCHAR(50) NOT NULL,
     load_id VARCHAR(100),
     
@@ -64,6 +65,7 @@ CREATE TABLE journeys (
 
 -- Indexes
 CREATE INDEX idx_journeys_journey_number ON journeys(journey_number);
+CREATE INDEX idx_journeys_lr_number ON journeys(lr_number); -- Index for LR Number matching
 CREATE INDEX idx_journeys_vehicle_number ON journeys(vehicle_number);
 CREATE INDEX idx_journeys_status ON journeys(status);
 CREATE INDEX idx_journeys_epod_status ON journeys(epod_status);

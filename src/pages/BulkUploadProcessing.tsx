@@ -5,16 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, Loader2 } from "lucide-react";
+import { uploadBulkDocuments } from "@/api/bulkUpload";
+import { toast } from "sonner";
 
 const BulkUploadProcessing = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { type, journeyIds, files } = location.state || { type: "POD", journeyIds: [], files: 0 };
+  const { type, journeyIds, files, fileCount } = location.state || { type: "POD", journeyIds: [], files: [], fileCount: 0 };
   
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [matched, setMatched] = useState(0);
   const [needsReview, setNeedsReview] = useState(0);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const steps = [
     "Uploading documents",
@@ -25,52 +29,69 @@ const BulkUploadProcessing = () => {
   ];
 
   useEffect(() => {
-    // Simulate processing
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 200);
+    // Real upload and processing
+    const processUpload = async () => {
+      try {
+        setCurrentStep(0); // Uploading documents
+        setProgress(10);
 
-    // Update steps based on progress
-    const stepInterval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev >= steps.length - 1) {
-          clearInterval(stepInterval);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1500);
+        // Call real API
+        const response = await uploadBulkDocuments({
+          type,
+          journeyIds,
+          files: Array.isArray(files) ? files : [],
+        });
 
-    // Simulate results
-    setTimeout(() => {
-      setMatched(Math.floor(files * 0.7));
-      setNeedsReview(Math.floor(files * 0.3));
-    }, 3000);
+        setProgress(40);
+        setCurrentStep(1); // OCR extraction
 
-    return () => {
-      clearInterval(interval);
-      clearInterval(stepInterval);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setProgress(60);
+        setCurrentStep(2); // Matching
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setProgress(80);
+        setCurrentStep(3); // Validating
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setProgress(95);
+        setCurrentStep(4); // Finalizing
+
+        // Update results
+        setJobId(response.jobId);
+        setMatched(response.summary.matched);
+        setNeedsReview(response.summary.needsReview);
+        
+        setProgress(100);
+        
+        toast.success(`Processed ${response.summary.totalFiles} files successfully!`);
+
+      } catch (error: any) {
+        console.error('Upload processing error:', error);
+        setError(error.message || 'Failed to process files');
+        toast.error('Failed to process files: ' + error.message);
+        setProgress(100); // Show completion even on error
+        setCurrentStep(steps.length - 1);
+      }
     };
-  }, [files]);
+
+    if (Array.isArray(files) && files.length > 0) {
+      processUpload();
+    }
+  }, []);
 
   const isComplete = progress === 100 && currentStep === steps.length - 1;
 
   // Auto-navigate after completion
   useEffect(() => {
-    if (isComplete) {
+    if (isComplete && jobId && !error) {
       const timer = setTimeout(() => {
-        navigate("/bulk-jobs/job1");
+        navigate(`/bulk-jobs/${jobId}`);
       }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [isComplete, navigate]);
+  }, [isComplete, jobId, error, navigate]);
 
   return (
     <AppLayout>
@@ -97,7 +118,7 @@ const BulkUploadProcessing = () => {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 rounded-lg bg-muted">
-                <p className="text-3xl font-bold">{files}</p>
+                <p className="text-3xl font-bold">{fileCount || (Array.isArray(files) ? files.length : 0)}</p>
                 <p className="text-sm text-muted-foreground mt-1">Total Files</p>
               </div>
               <div className="text-center p-4 rounded-lg bg-success/10">
@@ -150,12 +171,27 @@ const BulkUploadProcessing = () => {
             {/* Action */}
             {isComplete && (
               <div className="pt-4">
-                <Button 
-                  className="w-full" 
-                  onClick={() => navigate("/bulk-jobs/job1")}
-                >
-                  Go to Review Workspace
-                </Button>
+                {error ? (
+                  <div className="text-center">
+                    <p className="text-destructive text-sm mb-3">{error}</p>
+                    <Button 
+                      variant="outline"
+                      className="w-full" 
+                      onClick={() => navigate("/")}
+                    >
+                      Back to Dashboard
+                    </Button>
+                  </div>
+                ) : jobId ? (
+                  <Button 
+                    className="w-full" 
+                    onClick={() => navigate(`/bulk-jobs/${jobId}`)}
+                  >
+                    Go to Review Workspace
+                  </Button>
+                ) : (
+                  <p className="text-center text-muted-foreground">Processing complete</p>
+                )}
               </div>
             )}
           </CardContent>

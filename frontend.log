@@ -1,0 +1,16 @@
+
+> freight-audit-suite@1.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 136 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: http://192.168.1.5:5174/
+3:15:12 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css
+3:15:30 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css
+3:15:51 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css
+3:16:01 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css
+3:16:56 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css
+3:17:06 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css
+3:17:11 AM [vite] hmr update /src/pages/ReviewWorkspace.tsx, /src/index.css

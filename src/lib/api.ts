@@ -85,13 +85,28 @@ export async function fetchProformas(params?: {
 
   const url = `${API_BASE_URL}/api/proformas${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText || `HTTP ${response.status}` };
+      }
+      throw new Error(errorData.error || errorData.details || `API error: ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (err: any) {
+    console.error('❌ fetchProformas error:', err);
+    if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      throw new Error('Cannot connect to backend API. Make sure the backend server is running on http://localhost:3000');
+    }
+    throw err;
   }
-  
-  return response.json();
 }
 
 export async function fetchProformaById(id: string): Promise<ApiProforma> {
@@ -112,11 +127,11 @@ export function transformProformaToJourney(proforma: ApiProforma) {
   const journey = proforma.journey;
   if (!journey) return null;
 
-  // Generate realistic LR number (different from LCU)
-  const lrNumber = `LR${journey.journey_number.substring(2, 6)}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+  // Use journey_number as LR number (it's already the LR number from JSON)
+  const lrNumber = journey.journey_number.startsWith('LR') ? journey.journey_number : journey.journey_number;
   
   return {
-    id: proforma.id,
+    id: journey.id, // CRITICAL: Use journey.id, not proforma.id (backend expects journey UUIDs)
     lcuNo: journey.load_id,
     journeyNo: journey.journey_number,
     lrNo: lrNumber,

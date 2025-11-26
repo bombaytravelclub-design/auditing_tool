@@ -33,14 +33,28 @@ const BulkUpload = () => {
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (files.length === 0) {
       toast.error("Please select at least one file");
       return;
     }
     
+    // Filter out static journey IDs (display-only, not in database)
+    const realJourneyIds = journeyIds.filter((id: string) => !id.startsWith('static-'));
+    
+    if (realJourneyIds.length === 0) {
+      toast.error("Please select journeys from the database (scroll down past the top static entries)");
+      return;
+    }
+    
+    // Navigate to processing screen with actual files
     navigate("/bulk-upload/processing", { 
-      state: { type, journeyIds, files: files.length } 
+      state: { 
+        type, 
+        journeyIds: realJourneyIds, 
+        files: files, // Pass actual File objects
+        fileCount: files.length 
+      } 
     });
   };
 

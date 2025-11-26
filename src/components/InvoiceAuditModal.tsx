@@ -51,12 +51,18 @@ interface InvoiceAuditModalProps {
 }
 
 export function InvoiceAuditModal({ open, onOpenChange, data }: InvoiceAuditModalProps) {
-  const [charges, setCharges] = useState(data.charges);
+  // Ensure charges and checks are always arrays
+  const safeData = {
+    ...data,
+    charges: Array.isArray(data?.charges) ? data.charges : [],
+    checks: Array.isArray(data?.checks) ? data.checks : [],
+  };
+  const [charges, setCharges] = useState(safeData.charges);
   const [rejectingChargeId, setRejectingChargeId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
   const handleAcceptCharge = (chargeId: string) => {
-    setCharges(charges.map(c => 
+    setCharges((prevCharges) => (prevCharges || []).map(c => 
       c.id === chargeId ? { ...c, status: "accepted" as const } : c
     ));
   };
@@ -67,7 +73,7 @@ export function InvoiceAuditModal({ open, onOpenChange, data }: InvoiceAuditModa
 
   const confirmReject = () => {
     if (rejectingChargeId) {
-      setCharges(charges.map(c => 
+      setCharges((prevCharges) => (prevCharges || []).map(c => 
         c.id === rejectingChargeId 
           ? { ...c, status: "rejected" as const, rejectionReason } 
           : c
@@ -111,25 +117,25 @@ export function InvoiceAuditModal({ open, onOpenChange, data }: InvoiceAuditModa
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg">
           <div>
             <label className="text-xs text-muted-foreground">Docket/Invoice No</label>
-            <p className="font-semibold mt-1">{data.invoiceNo}</p>
+            <p className="font-semibold mt-1">{safeData.invoiceNo || 'N/A'}</p>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Status</label>
             <div className="mt-1">
-              <Badge variant={getStatusVariant(data.status)}>{data.status}</Badge>
+              <Badge variant={getStatusVariant(safeData.status || 'Matched')}>{safeData.status || 'Matched'}</Badge>
             </div>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Mode</label>
-            <p className="font-semibold mt-1">{data.mode}</p>
+            <p className="font-semibold mt-1">{safeData.mode || 'N/A'}</p>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Service Level</label>
-            <p className="font-semibold mt-1">{data.serviceLevel}</p>
+            <p className="font-semibold mt-1">{safeData.serviceLevel || 'N/A'}</p>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Invoice Date</label>
-            <p className="font-semibold mt-1">{data.invoiceDate}</p>
+            <p className="font-semibold mt-1">{safeData.invoiceDate || 'N/A'}</p>
           </div>
         </div>
 
@@ -137,7 +143,7 @@ export function InvoiceAuditModal({ open, onOpenChange, data }: InvoiceAuditModa
         <div className="rounded-lg border bg-card p-4">
           <h3 className="text-sm font-medium mb-3">Validation Checks</h3>
           <div className="grid grid-cols-2 gap-3">
-            {data.checks.map((check, index) => (
+            {(safeData.checks || []).map((check, index) => (
               <div key={index} className="flex items-center justify-between p-2 bg-muted/20 rounded">
                 <span className="text-sm">{check.label}</span>
                 <Badge variant={getCheckStatusVariant(check.status)} className="text-xs">
@@ -152,16 +158,20 @@ export function InvoiceAuditModal({ open, onOpenChange, data }: InvoiceAuditModa
         <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
           <div>
             <label className="text-xs text-muted-foreground">Contracted Cost</label>
-            <p className="text-lg font-bold mt-1">₹{data.contractedCost.toLocaleString("en-IN")}</p>
+            <p className="text-lg font-bold mt-1">
+              {safeData.contractedCost !== null && safeData.contractedCost !== undefined
+                ? `₹${safeData.contractedCost.toLocaleString("en-IN")}`
+                : <span className="text-muted-foreground">No contract</span>}
+            </p>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Invoice Amount</label>
-            <p className="text-lg font-bold mt-1">₹{data.invoiceAmount.toLocaleString("en-IN")}</p>
+            <p className="text-lg font-bold mt-1">₹{(safeData.invoiceAmount || 0).toLocaleString("en-IN")}</p>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Variance</label>
-            <p className={`text-lg font-bold mt-1 ${data.variance !== 0 ? "text-destructive" : "text-success"}`}>
-              {data.variance > 0 ? "+" : ""}₹{data.variance.toLocaleString("en-IN")}
+            <p className={`text-lg font-bold mt-1 ${(safeData.variance || 0) !== 0 ? "text-destructive" : "text-success"}`}>
+              {(safeData.variance || 0) > 0 ? "+" : ""}₹{(safeData.variance || 0).toLocaleString("en-IN")}
             </p>
           </div>
         </div>
@@ -182,10 +192,14 @@ export function InvoiceAuditModal({ open, onOpenChange, data }: InvoiceAuditModa
               </TableRow>
             </TableHeader>
             <TableBody>
-              {charges.map((charge) => (
+              {(charges || []).map((charge) => (
                 <TableRow key={charge.id}>
                   <TableCell className="font-medium">{charge.type}</TableCell>
-                  <TableCell className="text-right">₹{charge.contracted.toLocaleString("en-IN")}</TableCell>
+                  <TableCell className="text-right">
+                    {charge.contracted !== null && charge.contracted !== undefined
+                      ? `₹${charge.contracted.toLocaleString("en-IN")}`
+                      : <span className="text-muted-foreground">No contract</span>}
+                  </TableCell>
                   <TableCell className="text-right">₹{charge.invoice.toLocaleString("en-IN")}</TableCell>
                   <TableCell className="text-right">
                     <span className={charge.variance !== 0 ? "text-destructive font-semibold" : ""}>
