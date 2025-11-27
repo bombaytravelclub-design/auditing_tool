@@ -79,10 +79,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           transporter: journey?.transporter?.full_name || 'Unknown',
           document: item.file_name,
           documentUrl: item.file_url,
+          file_name: item.file_name, // Include file_name for skipped tab
+          journey_id: item.journey_id, // Include journey_id for filtering
+          match_status: item.match_status, // Include match_status for filtering
+          matchStatus: item.match_status, // Include both field names for compatibility
           autoApproval: item.match_status === 'matched' ? 'Passed' : 'Failed',
           matchScore: item.match_score || 0,
-          matchReason: item.match_reason || '',
+          matchReason: item.match_reason || item.match_details?.matchReason || '',
           status: item.status,
+          error_message: item.error_message, // Include error_message for skipped items
+          reason: item.error_message || item.match_details?.matchReason || '', // Include reason for skipped items
           ocrData: {
             vehicleNumber: ocrData.vehicleNumber,
             loadId: ocrData.loadId,
