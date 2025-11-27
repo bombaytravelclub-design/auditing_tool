@@ -1,6 +1,6 @@
 // Bulk Upload API - POD and Invoice Document Processing
 import { createClient } from '@supabase/supabase-js';
-import { extractPodMetadata } from './_lib/ocr';
+import { extractPodMetadata, extractInvoiceMetadata } from './_lib/ocr';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -169,18 +169,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .from('documents')
           .getPublicUrl(`${storagePath}/${fileName}`);
 
-        // Extract metadata using OCR
-        let ocrResult;
+        // Extract metadata using OCR (use appropriate function based on document type)
+        let ocrResult: any;
         try {
-          ocrResult = await extractPodMetadata(fileBuffer, file.type);
+          if (type.toLowerCase() === 'invoice') {
+            console.log(`📄 Extracting invoice metadata for ${file.name}...`);
+            ocrResult = await extractInvoiceMetadata(fileBuffer, file.type);
+            // Normalize invoice OCR result to match POD format for matching
+            ocrResult = {
+              journeyNumber: ocrResult.journeyNumber || ocrResult.invoiceDetails?.lrNo,
+              vehicleNumber: ocrResult.vehicleNumber || ocrResult.invoiceDetails?.vehicleNumber,
+              loadId: ocrResult.loadId || ocrResult.invoiceDetails?.lcuNo,
+              confidence: ocrResult.confidence || 0.8,
+              invoiceNumber: ocrResult.invoiceNumber || ocrResult.invoiceDetails?.invoiceNo,
+              charges: ocrResult.charges || ocrResult.chargeBreakup,
+              totalAmount: ocrResult.totalAmount || ocrResult.chargeBreakup?.totalPayableAmount,
+            };
+          } else {
+            console.log(`📄 Extracting POD metadata for ${file.name}...`);
+            ocrResult = await extractPodMetadata(fileBuffer, file.type);
+          }
+          
           console.log(`📄 OCR Result for ${file.name}:`, {
             journeyNumber: ocrResult.journeyNumber,
             vehicleNumber: ocrResult.vehicleNumber,
             loadId: ocrResult.loadId,
             confidence: ocrResult.confidence,
+            invoiceNumber: ocrResult.invoiceNumber,
           });
         } catch (ocrError: any) {
           console.error(`❌ OCR extraction failed for ${file.name}:`, ocrError);
+          console.error('   Error stack:', ocrError.stack);
           processedItems.push({
             fileName: file.name,
             status: 'skipped',
