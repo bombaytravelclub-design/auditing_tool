@@ -429,7 +429,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           continue;
         }
 
-        console.log(`✅ Created job item for ${file.name}:`, jobItem?.id);
+        if (!jobItem || !jobItem.id) {
+          console.error(`❌ Job item created but no ID returned for ${file.name}`);
+          console.error('   Response:', jobItem);
+          failedCount++;
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: 'Item created but no ID returned',
+          });
+          continue;
+        }
+
+        console.log(`✅ Created job item for ${file.name}:`, jobItem.id);
+        console.log(`   Match status: ${matchStatus}`);
+        console.log(`   Journey ID: ${matchedJourney?.id || 'null'}`);
+
+        // Verify item was actually saved
+        const { data: verifyItem, error: verifyError } = await supabase
+          .from('bulk_job_items')
+          .select('id, match_status, journey_id')
+          .eq('id', jobItem.id)
+          .single();
+
+        if (verifyError || !verifyItem) {
+          console.error(`⚠️ Warning: Could not verify item ${jobItem.id} was saved:`, verifyError);
+        } else {
+          console.log(`✅ Verified item ${jobItem.id} exists in database`);
+        }
 
         // Only increment counts AFTER successful insertion
         if (isMatched) {
