@@ -121,13 +121,30 @@ const ReviewWorkspace = () => {
           console.log('✅ Setting job data:', {
             jobId: jobData.id,
             jobType: jobData.type,
-            itemsCount: itemsData.length
+            itemsCount: itemsData.length,
+            items: itemsData.map(item => ({
+              id: item.id,
+              file_name: item.file_name,
+              match_status: item.match_status,
+            })),
           });
           
+          // ALWAYS set items, even if empty
           setJob(jobData);
           setReviewData(itemsData);
+          
+          // Log if items are empty
+          if (itemsData.length === 0) {
+            console.warn('⚠️ No items in response, but job exists:', {
+              jobId: jobData.id,
+              jobStatus: jobData.status,
+              jobTotalFiles: jobData.totalFiles,
+            });
+          }
         } else {
           console.error('❌ Invalid response structure:', response);
+          console.error('   Response keys:', Object.keys(response || {}));
+          console.error('   Response:', JSON.stringify(response, null, 2));
           toast.error('Invalid job data received');
           // Set minimal job data to prevent white screen
           setJob({ id: jobId, type: 'pod', status: 'error' });
@@ -202,12 +219,15 @@ const ReviewWorkspace = () => {
   console.log('SUMMARY_PAGE_DATA', { 
     items: allReviewData,
     itemsCount: allReviewData.length,
+    reviewDataLength: reviewData.length,
     allItems: allReviewData.map(item => ({
       id: item.id,
       file_name: item.file_name,
       match_status: item.match_status,
       matchStatus: item.matchStatus,
       status: item.status,
+      loadId: item.loadId,
+      journeyNo: item.journeyNo,
     })),
   });
 
@@ -222,11 +242,20 @@ const ReviewWorkspace = () => {
       id: item.id,
       file_name: item.file_name,
       match_status: item.match_status || item.matchStatus || item.status,
+      loadId: item.loadId,
+      journeyNo: item.journeyNo,
     })),
   });
 
   // Use summaryItems for Summary tab
   const summaryData = summaryItems;
+  
+  // Debug: Log what will be rendered
+  console.log('SUMMARY_TAB_RENDER', {
+    summaryDataLength: summaryData.length,
+    willRenderTable: summaryData.length > 0,
+    firstItem: summaryData[0] || null,
+  });
 
   // Needs Review: Items where match_status is 'mismatch' (not matched, not skipped)
   // CRITERIA: match_status === 'mismatch' = Needs Review tab
