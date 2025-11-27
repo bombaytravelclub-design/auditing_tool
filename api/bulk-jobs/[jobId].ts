@@ -36,13 +36,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data: items, error: itemsError } = await supabase
         .from('bulk_job_items')
         .select('*')
-        .eq('bulk_job_id', jobId);
+        .eq('bulk_job_id', jobId)
+        .order('created_at', { ascending: false });
 
       if (itemsError) {
         console.error('❌ Error fetching items:', itemsError);
+        console.error('   Error code:', itemsError.code);
+        console.error('   Error message:', itemsError.message);
+        console.error('   Error details:', itemsError.details);
       }
 
       console.log(`📊 Found ${items?.length || 0} items for job ${jobId}`);
+      
+      // Debug: Log raw items
+      if (items && items.length > 0) {
+        console.log('📋 Raw items from database:');
+        items.forEach((item, idx) => {
+          console.log(`  Item ${idx + 1}:`, {
+            id: item.id,
+            file_name: item.file_name,
+            match_status: item.match_status,
+            journey_id: item.journey_id,
+            bulk_job_id: item.bulk_job_id,
+            has_ocr_data: !!item.ocr_extracted_data,
+          });
+        });
+      } else {
+        console.log('⚠️ No items found in database for this job!');
+        console.log('   Job ID:', jobId);
+        console.log('   This could mean:');
+        console.log('   1. Items were not created during bulk upload');
+        console.log('   2. Items were deleted');
+        console.log('   3. Job ID mismatch');
+      }
 
       // Transform data for frontend
       const transformedItems = await Promise.all((items || []).map(async (item: any) => {
@@ -136,6 +162,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           charges: contractedCharges,
         };
       }));
+
+      console.log(`✅ Returning ${transformedItems.length} transformed items`);
 
       return res.status(200).json({
         success: true,
