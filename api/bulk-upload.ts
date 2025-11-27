@@ -170,13 +170,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .getPublicUrl(`${storagePath}/${fileName}`);
 
         // Extract metadata using OCR
-        const ocrResult = await extractPodMetadata(fileBuffer, file.type);
-        console.log(`📄 OCR Result for ${file.name}:`, {
-          journeyNumber: ocrResult.journeyNumber,
-          vehicleNumber: ocrResult.vehicleNumber,
-          loadId: ocrResult.loadId,
-          confidence: ocrResult.confidence,
-        });
+        let ocrResult;
+        try {
+          ocrResult = await extractPodMetadata(fileBuffer, file.type);
+          console.log(`📄 OCR Result for ${file.name}:`, {
+            journeyNumber: ocrResult.journeyNumber,
+            vehicleNumber: ocrResult.vehicleNumber,
+            loadId: ocrResult.loadId,
+            confidence: ocrResult.confidence,
+          });
+        } catch (ocrError: any) {
+          console.error(`❌ OCR extraction failed for ${file.name}:`, ocrError);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: `OCR failed: ${ocrError.message}`,
+          });
+          continue;
+        }
 
         // Find matching journey using sophisticated matching logic
         const matchedJourney = findMatchingJourney(ocrResult, allJourneys);
@@ -218,8 +229,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .single();
 
         if (itemError) {
-          console.error('Error creating job item:', itemError);
+          console.error(`❌ Error creating job item for ${file.name}:`, itemError);
+          console.error('   Error code:', itemError.code);
+          console.error('   Error message:', itemError.message);
+          console.error('   Error details:', itemError.details);
+          console.error('   Error hint:', itemError.hint);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: `Database insert failed: ${itemError.message}`,
+          });
+          continue;
         }
+
+        console.log(`✅ Created job item for ${file.name}:`, jobItem?.id);
 
         processedItems.push({
           fileName: file.name,
