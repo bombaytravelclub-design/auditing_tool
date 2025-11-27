@@ -3,7 +3,21 @@
  * Fetches real data from Express API
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Auto-detect API URL based on environment
+const getApiBaseUrl = () => {
+  // In production (Vercel), use the same domain
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin;
+  }
+  // Use environment variable if set
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Fallback to localhost for development
+  return 'http://localhost:3000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // ============================================================================
 // Types matching backend response

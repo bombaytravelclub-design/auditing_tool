@@ -1,5 +1,19 @@
 // Frontend API Client for Bulk Upload
-const API_BASE = 'http://localhost:3000';
+// Auto-detect API URL based on environment
+const getApiBase = () => {
+  // In production (Vercel), use the same domain
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin;
+  }
+  // Use environment variable if set
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Fallback to localhost for development
+  return 'http://localhost:3000';
+};
+
+const API_BASE = getApiBase();
 
 export interface BulkUploadRequest {
   type: 'POD' | 'Invoice';
