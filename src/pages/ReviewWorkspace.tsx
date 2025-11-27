@@ -210,12 +210,30 @@ const ReviewWorkspace = () => {
       status: allReviewData[0].status,
       journey_id: allReviewData[0].journey_id,
       journeyId: allReviewData[0].journeyId,
+      file_name: allReviewData[0].file_name,
+      loadId: allReviewData[0].loadId,
     } : null,
+    allItems: allReviewData.map(item => ({
+      id: item.id,
+      file_name: item.file_name,
+      match_status: item.match_status,
+      journey_id: item.journey_id,
+    })),
   });
 
   // Summary: Show ALL items (always show everything)
   // Changed: Always show all items in Summary tab, regardless of match status
   const summaryData = allReviewData; // Show all items always
+  
+  console.log('SUMMARY_TAB_FILTER', {
+    allReviewDataCount: allReviewData.length,
+    summaryDataCount: summaryData.length,
+    summaryDataItems: summaryData.map(item => ({
+      id: item.id,
+      file_name: item.file_name,
+      match_status: item.match_status,
+    })),
+  });
 
   // Needs Review: Items where match_status is 'mismatch' (not matched, not skipped)
   // CRITERIA: match_status === 'mismatch' = Needs Review tab
