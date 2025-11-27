@@ -5,19 +5,35 @@
 
 // Auto-detect API URL based on environment
 const getApiBaseUrl = () => {
-  // In production (Vercel), use the same domain
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
+  // Check if we're in browser environment
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const origin = window.location.origin;
+    
+    // If not localhost, we're on Vercel/production - use same origin
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      console.log('🌐 Production environment detected:', origin);
+      return origin;
+    }
+    
+    // Localhost - use local backend
+    console.log('🏠 Local development detected, using localhost:3000');
+    return 'http://localhost:3000';
   }
-  // Use environment variable if set
+  
+  // Server-side or build time - use environment variable if set
   if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
+  
   // Fallback to localhost for development
+  console.log('⚠️ Fallback to localhost:3000');
   return 'http://localhost:3000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('🔗 API_BASE_URL initialized to:', API_BASE_URL);
 
 // ============================================================================
 // Types matching backend response

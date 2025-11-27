@@ -1,14 +1,25 @@
 // Frontend API Client for Bulk Upload
 // Auto-detect API URL based on environment
 const getApiBase = () => {
-  // In production (Vercel), use the same domain
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
+  // Check if we're in browser environment
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const origin = window.location.origin;
+    
+    // If not localhost, we're on Vercel/production - use same origin
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return origin;
+    }
+    
+    // Localhost - use local backend
+    return 'http://localhost:3000';
   }
-  // Use environment variable if set
+  
+  // Server-side or build time - use environment variable if set
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
+  
   // Fallback to localhost for development
   return 'http://localhost:3000';
 };
