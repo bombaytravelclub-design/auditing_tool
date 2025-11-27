@@ -3,7 +3,14 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabase } from './_lib/supabase';
-import type { ProformaListResponse, ProformaFilters } from '../src/types/domain';
+
+// Define types inline to avoid import issues
+interface ProformaListResponse {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow GET
