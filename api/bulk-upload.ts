@@ -432,20 +432,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           bulk_job_id: bulkJob.id,
           file_name: file.name,
           match_status: matchStatus,
-          journey_id: matchedJourney?.id ?? null,
-          proforma_id: proforma?.id ?? null,
-          invoiceNumber: parsedData.invoiceNumber,
-          lrNumber: parsedData.lrNumber,
-          lcuNumber: parsedData.lcuNumber,
-          isMatched: isMatched,
-          contractComparison: contractComparison,
-        });
-
-        console.log('BULK_ITEM_INSERT_DEBUG', {
-          env: process.env.VERCEL ? 'vercel' : 'local',
-          bulk_job_id: bulkJob.id,
-          file_name: file.name,
-          match_status: matchStatus,
         });
 
         const { data: jobItem, error: itemError } = await supabase
