@@ -1,6 +1,100 @@
 // Bulk Upload API - POD and Invoice Document Processing
 import { createClient } from '@supabase/supabase-js';
-import { extractPodMetadata, extractInvoiceMetadata } from './_lib/ocr';
+
+// ============================================================================
+// STATIC INVOICE DATA (NO OCR - Use this dataset only)
+// ============================================================================
+const STATIC_INVOICES: Record<string, any> = {
+  "INV-24001": {
+    "invoiceNumber": "INV-24001",
+    "lrNumber": "LR20257713",
+    "lcuNumber": "LCU95304199",
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceDate": "2025-01-15",
+    "origin": "Bangalore, KA",
+    "destination": "Surat, GJ",
+    "chargeBreakup": {
+      "baseFreight": 47727.03,
+      "tollCharges": 516.75,
+      "unloadingCharges": 1052.18,
+      "otherAddOnCharges": 0,
+      "subtotalBeforeTax": 49295.96,
+      "sgst": 2957.76,
+      "cgst": 2957.76,
+      "totalPayableAmount": 58169.23
+    },
+    "materialDetails": {
+      "description": "Industrial chemicals (non-hazardous)",
+      "quantityKg": 1764,
+      "packages": "18 Drums"
+    }
+  },
+  "INV-24005": {
+    "invoiceNumber": "INV-24005",
+    "lrNumber": "LR20252184",
+    "lcuNumber": "LCU33441066",
+    "transporter": "Global Logistics Inc",
+    "consignor": "Acme Chemicals Pvt Ltd",
+    "invoiceDate": "2025-01-19",
+    "origin": "Bangalore, KA",
+    "destination": "Hyderabad, TS",
+    "chargeBreakup": {
+      "baseFreight": 53933.31,
+      "tollCharges": 5748.06,
+      "unloadingCharges": 1200,
+      "otherAddOnCharges": 0,
+      "subtotalBeforeTax": 60881.37,
+      "sgst": 3652.88,
+      "cgst": 3652.88,
+      "totalPayableAmount": 68187.13
+    },
+    "materialDetails": {
+      "description": "Specialty additives",
+      "quantityKg": 1800,
+      "packages": "18 Drums"
+    }
+  }
+};
+
+// ============================================================================
+// STATIC DATA LOOKUP FUNCTION (NO OCR)
+// ============================================================================
+function getStaticInvoiceData(fileName: string): {
+  error: string | null;
+  source?: string;
+  matchedInvoice?: string;
+  parsedData?: any;
+  fileName: string;
+} {
+  // Extract invoice number from filename (e.g., "invoice_INV-24001.pdf" -> "INV-24001")
+  const invoiceMatch = fileName.match(/INV-\d+/);
+  if (!invoiceMatch) {
+    return {
+      error: "STATIC_DATA_NOT_FOUND",
+      message: "Could not extract invoice number from filename.",
+      fileName: fileName
+    };
+  }
+
+  const invoiceNumber = invoiceMatch[0];
+  const staticData = STATIC_INVOICES[invoiceNumber];
+
+  if (!staticData) {
+    return {
+      error: "STATIC_DATA_NOT_FOUND",
+      message: "This invoice does not exist in the static dataset.",
+      fileName: fileName
+    };
+  }
+
+  return {
+    error: null,
+    source: "STATIC",
+    matchedInvoice: invoiceNumber,
+    parsedData: staticData
+  };
+}
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -156,103 +250,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Process each file
     for (const file of files) {
       try {
-        // Decode base64 file data
+        // ============================================================================
+        // STATIC DATA LOOKUP (NO OCR - Ignore file content completely)
+        // ============================================================================
+        console.log(`📄 Processing file: ${file.name} (STATIC DATA MODE - NO OCR)`);
+        
+        // Extract invoice number from filename
+        const staticDataResult = getStaticInvoiceData(file.name);
+        
+        if (staticDataResult.error) {
+          console.error(`❌ Static data lookup failed for ${file.name}:`, staticDataResult.error);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: staticDataResult.error === 'STATIC_DATA_NOT_FOUND' 
+              ? staticDataResult.message || 'Invoice not found in static dataset'
+              : 'Could not extract invoice number from filename',
+          });
+          failedCount++;
+          continue;
+        }
+
+        const parsedData = staticDataResult.parsedData;
+        console.log(`✅ Found static data for ${staticDataResult.matchedInvoice}:`, {
+          invoiceNumber: parsedData.invoiceNumber,
+          lrNumber: parsedData.lrNumber,
+          lcuNumber: parsedData.lcuNumber,
+        });
+
+        // Upload file to storage (still need to store the file, but don't read content)
         const fileBuffer = Buffer.from(file.data, 'base64');
-        
-        // Detect file type from buffer content (more reliable than extension/MIME type)
-        let detectedMimeType = file.type;
-        
-        // Check buffer magic bytes to determine actual file type
-        const bufferStart = fileBuffer.slice(0, 12);
-        const hexStart = bufferStart.toString('hex');
-        const textStart = bufferStart.toString('ascii');
-        
-        // Detect by magic bytes (most reliable)
-        if (textStart.startsWith('%PDF')) {
-          detectedMimeType = 'application/pdf';
-        } else if (hexStart.startsWith('ffd8')) {
-          // JPEG: FF D8 FF
-          detectedMimeType = 'image/jpeg';
-        } else if (hexStart.startsWith('89504e470d0a1a0a')) {
-          // PNG: 89 50 4E 47 0D 0A 1A 0A
-          detectedMimeType = 'image/png';
-        } else if (hexStart.startsWith('474946')) {
-          // GIF: 47 49 46 38 (GIF8)
-          detectedMimeType = 'image/gif';
-        } else if (hexStart.startsWith('52494646') && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
-          // WebP: RIFF....WEBP
-          detectedMimeType = 'image/webp';
-        } else if (!detectedMimeType || detectedMimeType === 'application/octet-stream') {
-          // If we can't detect and no MIME type provided, default to PNG
-          detectedMimeType = 'image/png';
-        }
-        
-        console.log(`📄 File detection for ${file.name}:`);
-        console.log(`   Provided MIME type: ${file.type || 'none'}`);
-        console.log(`   Detected MIME type: ${detectedMimeType}`);
-        console.log(`   Buffer start (hex): ${hexStart.substring(0, 16)}...`);
-        
-        // Reject PDFs BEFORE uploading or processing
-        if (detectedMimeType === 'application/pdf' || textStart.startsWith('%PDF')) {
-          console.error(`❌ PDF files are not supported. File "${file.name}" is a PDF.`);
-          processedItems.push({
-            fileName: file.name,
-            status: 'skipped',
-            reason: 'PDF files are not supported. Please convert PDF to image (PNG/JPEG) before uploading.',
-          });
-          failedCount++;
-          continue;
-        }
-        
-        // Validate that we have a valid image MIME type
-        const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-        if (!validImageTypes.includes(detectedMimeType)) {
-          console.error(`❌ Invalid image format: ${detectedMimeType}`);
-          processedItems.push({
-            fileName: file.name,
-            status: 'skipped',
-            reason: `Invalid image format: ${detectedMimeType}. Only PNG, JPEG, GIF, and WebP are supported.`,
-          });
-          failedCount++;
-          continue;
-        }
-        
-        console.log(`📄 File: ${file.name}, Detected MIME type: ${detectedMimeType}`);
-        
-        // Upload to Supabase Storage
         const storagePath = type.toLowerCase() === 'invoice' ? 'invoice' : 'pod';
         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
         const fullStoragePath = `${storagePath}/${fileName}`;
         
         console.log(`📤 Uploading file to storage: ${fullStoragePath}`);
-        console.log(`   File size: ${fileBuffer.length} bytes`);
-        console.log(`   MIME type: ${detectedMimeType}`);
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('documents')
           .upload(fullStoragePath, fileBuffer, {
-            contentType: detectedMimeType,
+            contentType: file.type || 'application/octet-stream',
             upsert: false,
             cacheControl: '3600',
           });
 
         if (uploadError) {
           console.error('❌ Storage upload error:', uploadError);
-          console.error('   Error code:', uploadError.statusCode);
-          console.error('   Error message:', uploadError.message);
-          console.error('   Error name:', uploadError.name);
-          
-          // If RLS error, provide helpful message
-          if (uploadError.statusCode === '403' || uploadError.message?.includes('row-level security')) {
-            console.error('   ⚠️ RLS Policy Error: Storage bucket has RLS enabled.');
-            console.error('   Solution: Go to Supabase Dashboard → Storage → documents bucket → Policies');
-            console.error('   Create a policy that allows INSERT for service role or disable RLS for this bucket.');
-          }
-          
           processedItems.push({
             fileName: file.name,
             status: 'skipped',
-            reason: `Upload failed: ${uploadError.message || 'Storage RLS policy blocked upload'}`,
+            reason: `Upload failed: ${uploadError.message}`,
           });
           failedCount++;
           continue;
@@ -265,136 +312,108 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .from('documents')
           .getPublicUrl(fullStoragePath);
 
-        // Extract metadata using OCR (use appropriate function based on document type)
-        let ocrResult: any;
-        try {
-          if (type.toLowerCase() === 'invoice') {
-            console.log(`📄 Extracting invoice metadata for ${file.name}...`);
-            ocrResult = await extractInvoiceMetadata(fileBuffer, detectedMimeType);
-            // Ensure journeyNumber is extracted from nested structure if needed
-            if (!ocrResult.journeyNumber && ocrResult.invoiceDetails?.lrNo) {
-              ocrResult.journeyNumber = ocrResult.invoiceDetails.lrNo;
-            }
-            // Ensure loadId is extracted from nested structure if needed
-            if (!ocrResult.loadId && ocrResult.invoiceDetails?.lcuNo) {
-              ocrResult.loadId = ocrResult.invoiceDetails.lcuNo;
-            }
-          } else {
-            console.log(`📄 Extracting POD metadata for ${file.name}...`);
-            ocrResult = await extractPodMetadata(fileBuffer, detectedMimeType);
-          }
-          
-          console.log(`📄 OCR Result for ${file.name}:`, {
-            journeyNumber: ocrResult.journeyNumber,
-            vehicleNumber: ocrResult.vehicleNumber,
-            loadId: ocrResult.loadId,
-            confidence: ocrResult.confidence,
-            invoiceNumber: ocrResult.invoiceNumber,
-            hasInvoiceDetails: !!ocrResult.invoiceDetails,
-            invoiceDetailsLrNo: ocrResult.invoiceDetails?.lrNo,
-          });
-        } catch (ocrError: any) {
-          console.error(`❌ OCR extraction failed for ${file.name}:`, ocrError);
-          console.error('   Error stack:', ocrError.stack);
-          processedItems.push({
-            fileName: file.name,
-            status: 'skipped',
-            reason: `OCR failed: ${ocrError.message}`,
-          });
-          failedCount++;
-          continue;
-        }
+        // Match using static data (LR number and LCU number)
+        // Create a data structure compatible with findMatchingJourney
+        const staticDataForMatching = {
+          journeyNumber: parsedData.lrNumber,
+          loadId: parsedData.lcuNumber,
+          lrNumber: parsedData.lrNumber,
+          lcuNumber: parsedData.lcuNumber,
+        };
 
-        // Check if OCR failed (returns error object) - check BEFORE counting
-        if (ocrResult.rawResponse?.error) {
-          console.error(`❌ OCR returned error for ${file.name}:`, ocrResult.rawResponse.error);
-          processedItems.push({
-            fileName: file.name,
-            status: 'skipped',
-            reason: `OCR failed: ${ocrResult.rawResponse.error}`,
-          });
-          failedCount++;
-          continue;
-        }
-
-        // Find matching journey using sophisticated matching logic
-        // Pass the full ocrResult so findMatchingJourney can check all possible field locations
-        const matchedJourney = findMatchingJourney(ocrResult, allJourneys);
+        const matchedJourney = findMatchingJourney(staticDataForMatching, allJourneys);
 
         console.log(`🔍 Matching result for ${file.name}:`, {
           matchedJourney: matchedJourney ? matchedJourney.id : null,
-          journeyNumber: ocrResult.journeyNumber,
-          loadId: ocrResult.loadId,
-          invoiceDetailsLrNo: ocrResult.invoiceDetails?.lrNo,
+          lrNumber: parsedData.lrNumber,
+          lcuNumber: parsedData.lcuNumber,
         });
 
-        // Determine match status
+        // Determine match status (matched if journey found, needs_review otherwise)
         const isMatched = !!matchedJourney;
-        const needsReview = !isMatched && (ocrResult.journeyNumber || ocrResult.loadId || ocrResult.invoiceDetails?.lrNo || ocrResult.invoiceDetails?.lcuNo);
+        const matchStatus: 'matched' | 'mismatch' = isMatched ? 'matched' : 'mismatch';
         
         console.log(`📊 Match status for ${file.name}:`, {
           isMatched,
-          needsReview,
-          hasJourneyNumber: !!ocrResult.journeyNumber,
-          hasLoadId: !!ocrResult.loadId,
+          matchStatus,
+          lrNumber: parsedData.lrNumber,
+          lcuNumber: parsedData.lcuNumber,
         });
 
-        // Fetch proforma data if matched (for debug logging)
+        // Fetch proforma data for contract comparison
         let proforma = null;
-        let contractedCost = null;
-        let invoiceAmount = null;
+        let contractComparison: any = {
+          baseFreight: { contracted: null, invoice: null, variance: null },
+          tollCharges: { contracted: null, invoice: null, variance: null },
+          unloadingCharges: { contracted: null, invoice: null, variance: null },
+          otherAddOnCharges: { contracted: null, invoice: null, variance: null },
+        };
         
         if (matchedJourney && type.toLowerCase() === 'invoice') {
           const { data: proformaData } = await supabase
             .from('proformas')
-            .select('id, total_amount')
+            .select('id, base_freight, toll_charge, unloading_charge, other_charges, total_amount')
             .eq('journey_id', matchedJourney.id)
             .limit(1)
             .single();
           proforma = proformaData;
-          contractedCost = proforma?.total_amount || null;
+          
+          // Map proforma charges to invoice charges and calculate variance
+          const chargeBreakup = parsedData.chargeBreakup || {};
+          
+          contractComparison = {
+            baseFreight: {
+              contracted: proforma?.base_freight || 0,
+              invoice: chargeBreakup.baseFreight || 0,
+              variance: (chargeBreakup.baseFreight || 0) - (proforma?.base_freight || 0),
+            },
+            tollCharges: {
+              contracted: proforma?.toll_charge || 0,
+              invoice: chargeBreakup.tollCharges || 0,
+              variance: (chargeBreakup.tollCharges || 0) - (proforma?.toll_charge || 0),
+            },
+            unloadingCharges: {
+              contracted: proforma?.unloading_charge || 0,
+              invoice: chargeBreakup.unloadingCharges || 0,
+              variance: (chargeBreakup.unloadingCharges || 0) - (proforma?.unloading_charge || 0),
+            },
+            otherAddOnCharges: {
+              contracted: proforma?.other_charges || 0,
+              invoice: chargeBreakup.otherAddOnCharges || 0,
+              variance: (chargeBreakup.otherAddOnCharges || 0) - (proforma?.other_charges || 0),
+            },
+          };
         }
-        
-        invoiceAmount = ocrResult.totalAmount || ocrResult.chargeBreakup?.totalPayableAmount || null;
 
-        // Prepare OCR extracted data for storage (match local server structure)
-        const ocrExtractedData: any = {
-          journeyNumber: ocrResult.journeyNumber,
-          vehicleNumber: ocrResult.vehicleNumber,
-          loadId: ocrResult.loadId,
-          confidence: ocrResult.confidence,
-          rawResponse: ocrResult.rawResponse,
-          // Store full nested structures (matching local server)
-          invoiceDetails: ocrResult.invoiceDetails || null,
-          chargeBreakup: ocrResult.chargeBreakup || null,
-          materialDetails: ocrResult.materialDetails || null,
-          // Also store top-level fields for backward compatibility
-          invoiceNumber: ocrResult.invoiceNumber,
-          baseFreight: ocrResult.baseFreight,
-          totalAmount: ocrResult.totalAmount,
-          charges: ocrResult.charges || [],
+        // Prepare extracted data for storage (using static data structure)
+        const extractedData: any = {
+          source: 'STATIC',
+          invoiceNumber: parsedData.invoiceNumber,
+          lrNumber: parsedData.lrNumber,
+          lcuNumber: parsedData.lcuNumber,
+          origin: parsedData.origin,
+          destination: parsedData.destination,
+          transporter: parsedData.transporter,
+          consignor: parsedData.consignor,
+          invoiceDate: parsedData.invoiceDate,
+          chargeBreakup: parsedData.chargeBreakup,
+          materialDetails: parsedData.materialDetails,
+          // For backward compatibility with existing code
+          journeyNumber: parsedData.lrNumber,
+          loadId: parsedData.lcuNumber,
+          totalAmount: parsedData.chargeBreakup?.totalPayableAmount || null,
+          baseFreight: parsedData.chargeBreakup?.baseFreight || null,
         };
-
-        // Determine match status (must match enum: 'pending_review', 'matched', 'mismatch', 'accepted', 'rejected', 'skipped')
-        let matchStatus: 'pending_review' | 'matched' | 'mismatch' | 'skipped';
-        if (isMatched) {
-          matchStatus = 'matched';
-        } else if (needsReview) {
-          matchStatus = 'mismatch'; // 'needs_review' is not in enum, use 'mismatch'
-        } else {
-          matchStatus = 'skipped';
-        }
 
         // Prepare match_details JSONB
         const matchDetails = {
           isMatched,
-          matchScore: isMatched ? 100 : needsReview ? 50 : 0,
+          matchScore: isMatched ? 100 : 0,
           matchReason: isMatched 
-            ? `LR Number matched: ${ocrResult.journeyNumber} = ${matchedJourney?.journey_number}`
-            : needsReview 
-              ? 'Needs review - LR Number found but no match'
-              : 'No LR Number found in OCR',
-          matchDetails: isMatched ? [`LR Number matched: ${ocrResult.journeyNumber}`] : [],
+            ? `LR Number matched: ${parsedData.lrNumber} = ${matchedJourney?.journey_number}`
+            : 'No matching journey found for LR/LCU number',
+          matchDetails: isMatched ? [`LR Number matched: ${parsedData.lrNumber}`] : [],
+          contractComparison: contractComparison,
         };
 
         // Insert into bulk_job_items
@@ -415,12 +434,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           match_status: matchStatus,
           journey_id: matchedJourney?.id ?? null,
           proforma_id: proforma?.id ?? null,
-          contractedCost: contractedCost,
-          invoiceAmount: invoiceAmount,
+          invoiceNumber: parsedData.invoiceNumber,
+          lrNumber: parsedData.lrNumber,
+          lcuNumber: parsedData.lcuNumber,
           isMatched: isMatched,
-          needsReview: needsReview,
-          ocr_journeyNumber: ocrResult.journeyNumber,
-          ocr_loadId: ocrResult.loadId,
+          contractComparison: contractComparison,
         });
 
         const { data: jobItem, error: itemError } = await supabase
@@ -430,8 +448,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             file_name: file.name,
             storage_path: fullStoragePath, // Use storage_path, not file_url
             journey_id: matchedJourney?.id || null,
-            ocr_extracted_data: ocrExtractedData,
-            ocr_confidence: ocrResult.confidence || null,
+            ocr_extracted_data: extractedData,
+            ocr_confidence: null, // No OCR, so no confidence score
             match_status: matchStatus, // Use correct enum value
             match_details: matchDetails, // Store match details in JSONB
           })
