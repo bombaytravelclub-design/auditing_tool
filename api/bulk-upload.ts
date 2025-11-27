@@ -151,6 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const processedItems = [];
     let matchedCount = 0;
     let needsReviewCount = 0;
+    let failedCount = 0;
 
     // Process each file
     for (const file of files) {
@@ -228,6 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: 'skipped',
             reason: `Upload failed: ${uploadError.message || 'Storage RLS policy blocked upload'}`,
           });
+          failedCount++;
           continue;
         }
         
@@ -274,6 +276,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: 'skipped',
             reason: `OCR failed: ${ocrError.message}`,
           });
+          failedCount++;
+          continue;
+        }
+
+        // Check if OCR failed (returns error object) - check BEFORE counting
+        if (ocrResult.rawResponse?.error) {
+          console.error(`❌ OCR returned error for ${file.name}:`, ocrResult.rawResponse.error);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: `OCR failed: ${ocrResult.rawResponse.error}`,
+          });
+          failedCount++;
           continue;
         }
 
@@ -283,20 +298,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Determine match status
         const isMatched = !!matchedJourney;
         const needsReview = !isMatched && (ocrResult.journeyNumber || ocrResult.loadId);
-
-        if (isMatched) matchedCount++;
-        if (needsReview) needsReviewCount++;
-
-        // Check if OCR failed (returns error object)
-        if (ocrResult.rawResponse?.error) {
-          console.error(`❌ OCR returned error for ${file.name}:`, ocrResult.rawResponse.error);
-          processedItems.push({
-            fileName: file.name,
-            status: 'skipped',
-            reason: `OCR failed: ${ocrResult.rawResponse.error}`,
-          });
-          continue;
-        }
 
         // Prepare OCR extracted data for storage (match local server structure)
         const ocrExtractedData: any = {
@@ -374,14 +375,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: 'skipped',
             reason: `Database insert failed: ${itemError.message}`,
           });
+          // Adjust counts if item insertion failed (decrement if we incremented earlier)
+          if (isMatched) matchedCount--;
+          else if (needsReview) needsReviewCount--;
+          failedCount++;
           continue;
         }
 
         console.log(`✅ Created job item for ${file.name}:`, jobItem?.id);
 
+        // Only increment counts AFTER successful insertion
+        if (isMatched) matchedCount++;
+        else if (needsReview) needsReviewCount++;
+        else failedCount++;
+
         processedItems.push({
           fileName: file.name,
-          status: isMatched ? 'matched' : needsReview ? 'needs_review' : 'skipped',
+          status: isMatched ? 'matched' : needsReview ? 'mismatch' : 'skipped',
           matchedJourneyId: matchedJourney?.id,
           matchScore: isMatched ? 100 : needsReview ? 50 : 0,
           ocrData: ocrExtractedData,
@@ -394,17 +404,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: 'skipped',
           reason: error.message,
         });
+        failedCount++;
       }
     }
 
     // Update bulk job with final counts
+    // Use explicit failedCount instead of calculated value to ensure accuracy
+    const finalFailedCount = failedCount + (files.length - matchedCount - needsReviewCount - failedCount);
+    console.log(`📊 Final counts:`, {
+      totalFiles: files.length,
+      matched: matchedCount,
+      needsReview: needsReviewCount,
+      failed: failedCount,
+      calculatedFailed: files.length - matchedCount - needsReviewCount,
+    });
+    
     await supabase
       .from('bulk_jobs')
       .update({
         processed_files: files.length,
         matched_files: matchedCount,
         mismatch_files: needsReviewCount,
-        failed_files: files.length - matchedCount - needsReviewCount,
+        failed_files: failedCount, // Use explicit failedCount
         status: 'completed',
         completed_at: new Date().toISOString(),
       })
@@ -417,7 +438,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         totalFiles: files.length,
         matched: matchedCount,
         needsReview: needsReviewCount,
-        skipped: files.length - matchedCount - needsReviewCount,
+        skipped: failedCount,
       },
       items: processedItems,
     });
