@@ -256,9 +256,32 @@ Return the data in this JSON format:
   }
 }`;
 
-    // Detect file type and normalize MIME type
-    const rawMimeType = fileType || 'image/png';
-    const isPdf = rawMimeType === 'application/pdf' || fileBuffer.slice(0, 4).toString() === '%PDF';
+    // Detect file type from buffer content (more reliable than MIME type)
+    let rawMimeType = fileType || 'image/png';
+    
+    // Check buffer magic bytes to determine actual file type
+    const bufferStart = fileBuffer.slice(0, 12);
+    const hexStart = bufferStart.toString('hex');
+    const textStart = bufferStart.toString('ascii');
+    
+    // Detect by magic bytes (most reliable - ignores wrong file extensions)
+    if (textStart.startsWith('%PDF')) {
+      rawMimeType = 'application/pdf';
+    } else if (hexStart.startsWith('ffd8')) {
+      // JPEG: FF D8 FF
+      rawMimeType = 'image/jpeg';
+    } else if (hexStart.startsWith('89504e470d0a1a0a')) {
+      // PNG: 89 50 4E 47 0D 0A 1A 0A
+      rawMimeType = 'image/png';
+    } else if (hexStart.startsWith('474946')) {
+      // GIF: 47 49 46 38 (GIF8)
+      rawMimeType = 'image/gif';
+    } else if (hexStart.startsWith('52494646') && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
+      // WebP: RIFF....WEBP
+      rawMimeType = 'image/webp';
+    }
+    
+    const isPdf = rawMimeType === 'application/pdf';
     
     if (isPdf) {
       throw new Error('PDF files are not supported. Please convert PDF to image (PNG/JPEG) before uploading.');
@@ -266,8 +289,11 @@ Return the data in this JSON format:
     
     // Image: Use Vision API with normalized MIME type
     console.log('🖼️ Image detected, using Vision API...');
+    console.log(`🔍 File type detection:`);
+    console.log(`   Provided MIME type: ${fileType || 'none'}`);
+    console.log(`   Detected MIME type: ${rawMimeType}`);
+    console.log(`   Buffer start (hex): ${hexStart.substring(0, 16)}...`);
     const normalizedMimeType = normalizeImageMimeType(rawMimeType);
-    console.log(`   Original MIME type: ${rawMimeType}`);
     console.log(`   Normalized MIME type: ${normalizedMimeType}`);
     
     const base64File = fileBuffer.toString('base64');
