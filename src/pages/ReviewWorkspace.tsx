@@ -216,8 +216,29 @@ const ReviewWorkspace = () => {
   // Skipped: Items where match_status is 'skipped'
   // CRITERIA: match_status === 'skipped' = Skipped tab
   const skippedData = allReviewData.filter((item) => {
-    const matchStatus = item.match_status || item.matchStatus;
+    const matchStatus = item.match_status || item.matchStatus || item.status;
+    console.log('🔍 Checking skipped filter for item:', {
+      id: item.id,
+      file_name: item.file_name,
+      match_status: item.match_status,
+      matchStatus: item.matchStatus,
+      status: item.status,
+      matches: matchStatus === 'skipped'
+    });
     return matchStatus === 'skipped';
+  });
+  
+  console.log('📊 Filtered data counts:', {
+    total: allReviewData.length,
+    summary: summaryData.length,
+    needsReview: needsReviewData.length,
+    skipped: skippedData.length,
+    allItems: allReviewData.map(item => ({
+      id: item.id,
+      file_name: item.file_name,
+      match_status: item.match_status,
+      journey_id: item.journey_id
+    }))
   });
 
   // Closed: Items where journey epod_status is 'approved'
