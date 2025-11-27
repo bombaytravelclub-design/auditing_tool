@@ -589,56 +589,97 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 
           // Detect file type from buffer content (more reliable than extension/MIME type)
           // Check buffer magic bytes FIRST to determine actual file type
-          const bufferStart = fileBuffer.slice(0, 12);
+          const bufferStart = fileBuffer.slice(0, 16); // Check more bytes for better detection
           const hexStart = bufferStart.toString('hex');
-          const textStart = bufferStart.toString('ascii');
+          const textStart = bufferStart.toString('ascii', 0, 16);
           
           console.log(`🔍 File type detection:`);
           console.log(`   File name: ${file.name}`);
+          console.log(`   File size: ${fileBuffer.length} bytes`);
           console.log(`   Provided MIME type: ${file.type || 'none'}`);
-          console.log(`   Buffer start (hex): ${hexStart.substring(0, 32)}...`);
-          console.log(`   Buffer start (text): ${textStart.substring(0, 12)}...`);
+          console.log(`   Buffer start (hex): ${hexStart.substring(0, 32)}`);
+          console.log(`   Buffer start (text): ${textStart.substring(0, 16)}`);
+          console.log(`   Buffer start (raw): ${JSON.stringify(bufferStart.slice(0, 8))}`);
           
           let rawMimeType = null;
           let isPdf = false;
+          let detectionMethod = 'unknown';
           
           // Detect by magic bytes (most reliable - ignores wrong file extensions)
+          // Check PDF first (most common issue)
           if (textStart.startsWith('%PDF')) {
             rawMimeType = 'application/pdf';
             isPdf = true;
-            console.log(`   ❌ Detected as PDF (starts with %PDF)`);
-          } else if (hexStart.startsWith('ffd8')) {
-            // JPEG: FF D8 FF
+            detectionMethod = 'magic_bytes_pdf';
+            console.log(`   ❌❌❌ DETECTED AS PDF (starts with %PDF) ❌❌❌`);
+            console.log(`   File appears to be a PDF, not an image!`);
+            console.log(`   First 20 chars: ${textStart.substring(0, 20)}`);
+          } 
+          // Check JPEG: FF D8 FF (most common image format)
+          else if (hexStart.startsWith('ffd8')) {
             rawMimeType = 'image/jpeg';
-            console.log(`   ✅ Detected as JPEG (FF D8)`);
-          } else if (hexStart.startsWith('89504e470d0a1a0a')) {
-            // PNG: 89 50 4E 47 0D 0A 1A 0A
+            detectionMethod = 'magic_bytes_jpeg';
+            console.log(`   ✅ Detected as JPEG (FF D8 FF)`);
+          } 
+          // Check PNG: 89 50 4E 47 0D 0A 1A 0A
+          else if (hexStart.startsWith('89504e470d0a1a0a')) {
             rawMimeType = 'image/png';
+            detectionMethod = 'magic_bytes_png';
             console.log(`   ✅ Detected as PNG (89 50 4E 47)`);
-          } else if (hexStart.startsWith('474946')) {
-            // GIF: 47 49 46 38 (GIF8)
+          } 
+          // Check GIF: 47 49 46 38 (GIF8) or 47 49 46 39 (GIF9)
+          else if (hexStart.startsWith('47494638') || hexStart.startsWith('47494639')) {
             rawMimeType = 'image/gif';
+            detectionMethod = 'magic_bytes_gif';
             console.log(`   ✅ Detected as GIF (47 49 46)`);
-          } else if (hexStart.startsWith('52494646') && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
-            // WebP: RIFF....WEBP
+          } 
+          // Check WebP: RIFF....WEBP
+          else if (hexStart.startsWith('52494646') && bufferStart.length >= 12 && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
             rawMimeType = 'image/webp';
+            detectionMethod = 'magic_bytes_webp';
             console.log(`   ✅ Detected as WebP (RIFF...WEBP)`);
-          } else {
-            // Unknown file type - check if provided MIME type is valid
+          } 
+          // Unknown file type
+          else {
+            // Check if provided MIME type is valid image
             const providedMimeType = file.type || '';
             if (providedMimeType.startsWith('image/')) {
               rawMimeType = providedMimeType;
+              detectionMethod = 'provided_mime_type';
               console.log(`   ⚠️ Using provided MIME type: ${rawMimeType}`);
             } else {
-              // Last resort: default to PNG but warn
-              rawMimeType = 'image/png';
-              console.log(`   ⚠️ WARNING: Could not detect file type, defaulting to image/png`);
-              console.log(`   ⚠️ This may fail if file is not actually an image!`);
+              // Check file extension as last resort
+              const fileExt = file.name.toLowerCase().split('.').pop();
+              const extToMime = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'pdf': 'application/pdf',
+              };
+              
+              if (extToMime[fileExt]) {
+                rawMimeType = extToMime[fileExt];
+                detectionMethod = 'file_extension';
+                console.log(`   ⚠️ Using file extension: ${fileExt} → ${rawMimeType}`);
+              } else {
+                // Last resort: throw error - we can't determine file type
+                console.error(`   ❌❌❌ CANNOT DETERMINE FILE TYPE ❌❌❌`);
+                console.error(`   File extension: ${fileExt || 'none'}`);
+                console.error(`   Provided MIME: ${providedMimeType || 'none'}`);
+                console.error(`   Buffer hex: ${hexStart.substring(0, 32)}`);
+                throw new Error(`Cannot determine file type for "${file.name}". File does not appear to be a valid image (PNG, JPEG, GIF, WebP). Please ensure you're uploading an image file, not a PDF.`);
+              }
             }
           }
           
-          if (isPdf) {
-            throw new Error('PDF files are not supported by OpenAI Vision API. Please convert PDF to image (PNG/JPEG) before uploading.');
+          console.log(`   Detection method: ${detectionMethod}`);
+          console.log(`   Detected MIME type: ${rawMimeType}`);
+          
+          // Check if PDF
+          if (isPdf || rawMimeType === 'application/pdf') {
+            throw new Error(`PDF files are not supported by OpenAI Vision API. The file "${file.name}" appears to be a PDF. Please convert it to an image (PNG/JPEG) before uploading.`);
           }
           
           // Validate that we have a valid image MIME type
@@ -653,14 +694,14 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           const normalizedMimeType = validImageTypes[rawMimeType?.toLowerCase()];
           
           if (!normalizedMimeType) {
-            throw new Error(`Invalid image format detected: ${rawMimeType}. Only PNG, JPEG, GIF, and WebP are supported.`);
+            throw new Error(`Invalid image format detected: "${rawMimeType}". Only PNG, JPEG, GIF, and WebP are supported. File: ${file.name}`);
           }
           
-          console.log(`   Final MIME type: ${normalizedMimeType}`);
+          console.log(`   ✅ Final normalized MIME type: ${normalizedMimeType}`);
           
           // Final validation before creating data URL
           if (!normalizedMimeType || !normalizedMimeType.startsWith('image/')) {
-            throw new Error(`Cannot process file: Invalid or unsupported MIME type "${normalizedMimeType}". Only image formats (PNG, JPEG, GIF, WebP) are supported.`);
+            throw new Error(`Cannot process file: Invalid or unsupported MIME type "${normalizedMimeType}". Only image formats (PNG, JPEG, GIF, WebP) are supported. File: ${file.name}`);
           }
           
           // Convert buffer to base64 data URL
