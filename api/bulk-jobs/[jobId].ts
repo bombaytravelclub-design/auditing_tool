@@ -20,6 +20,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     try {
+      console.log('🔍 GET /api/bulk-jobs/[jobId] called', {
+        env: process.env.VERCEL ? 'vercel' : 'local',
+        jobId: jobId,
+        method: req.method,
+        url: req.url,
+      });
+
       // Fetch bulk job first
       const { data: job, error: jobError } = await supabase
         .from('bulk_jobs')
@@ -29,8 +36,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (jobError || !job) {
         console.error('❌ Job not found:', jobError);
-        return res.status(404).json({ error: 'Bulk job not found' });
+        console.error('   Job ID:', jobId);
+        console.error('   Error details:', jobError);
+        return res.status(404).json({ error: 'Bulk job not found', jobId: jobId });
       }
+
+      console.log('✅ Job found:', {
+        id: job.id,
+        type: job.job_type,
+        status: job.status,
+        total_files: job.total_files,
+      });
 
       // Fetch items separately (more reliable than nested query)
       const { data: items, error: itemsError } = await supabase
@@ -92,6 +108,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Transform data for frontend - ALWAYS return items, even if skipped
+      // If no items, return empty array but log it
+      if (!items || items.length === 0) {
+        console.log('⚠️ No items found in database for job:', jobId);
+        console.log('   Returning empty items array');
+        return res.status(200).json({
+          success: true,
+          job: {
+            id: job.id,
+            type: job.job_type,
+            status: job.status,
+            totalFiles: job.total_files,
+            matched: job.matched_files || 0,
+            needsReview: job.mismatch_files || 0,
+            skipped: job.failed_files || 0,
+            createdAt: job.created_at,
+          },
+          items: [],
+        });
+      }
+
       const transformedItems = await Promise.all((items || []).map(async (item: any) => {
         try {
           // Parse OCR data if it's a string
