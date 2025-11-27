@@ -479,7 +479,59 @@ const ReviewWorkspace = () => {
   };
 
   const handleViewVariance = (item: any) => {
-    setSelectedVarianceData(item);
+    console.log('🔍 Opening variance modal for item:', {
+      id: item.id,
+      loadId: item.loadId,
+      charges: item.charges,
+      chargesLength: item.charges?.length,
+      contractedCost: item.contractedCost,
+      invoiceAmount: item.invoiceAmount,
+      ocrData: item.ocrData,
+    });
+    
+    // Ensure charges array exists and has data
+    const itemWithCharges = {
+      ...item,
+      charges: item.charges && Array.isArray(item.charges) && item.charges.length > 0 
+        ? item.charges 
+        : (item.ocrData?.chargeBreakup ? [
+            {
+              id: 'base',
+              type: 'Base Freight',
+              contracted: item.contractedCost ? item.contractedCost * 0.8 : 0,
+              invoice: item.ocrData.chargeBreakup.baseFreight || 0,
+              variance: (item.ocrData.chargeBreakup.baseFreight || 0) - (item.contractedCost ? item.contractedCost * 0.8 : 0),
+            },
+            {
+              id: 'toll',
+              type: 'Toll Charges',
+              contracted: item.contractedCost ? item.contractedCost * 0.1 : 0,
+              invoice: item.ocrData.chargeBreakup.tollCharges || 0,
+              variance: (item.ocrData.chargeBreakup.tollCharges || 0) - (item.contractedCost ? item.contractedCost * 0.1 : 0),
+            },
+            {
+              id: 'unload',
+              type: 'Unloading Charges',
+              contracted: item.contractedCost ? item.contractedCost * 0.05 : 0,
+              invoice: item.ocrData.chargeBreakup.unloadingCharges || 0,
+              variance: (item.ocrData.chargeBreakup.unloadingCharges || 0) - (item.contractedCost ? item.contractedCost * 0.05 : 0),
+            },
+            {
+              id: 'gst',
+              type: 'GST',
+              contracted: item.contractedCost ? item.contractedCost * 0.15 : 0,
+              invoice: (item.ocrData.chargeBreakup.sgst || 0) + (item.ocrData.chargeBreakup.cgst || 0),
+              variance: ((item.ocrData.chargeBreakup.sgst || 0) + (item.ocrData.chargeBreakup.cgst || 0)) - (item.contractedCost ? item.contractedCost * 0.15 : 0),
+            },
+          ] : []),
+    };
+    
+    console.log('✅ Setting variance data with charges:', {
+      chargesCount: itemWithCharges.charges?.length,
+      charges: itemWithCharges.charges,
+    });
+    
+    setSelectedVarianceData(itemWithCharges);
     setShowVarianceModal(true);
     // Reset charge actions for this item
     const initialChargeActions: Record<string, { status: 'accepted' | 'rejected' | 'pending', comment?: string }> = {};
