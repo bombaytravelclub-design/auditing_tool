@@ -213,14 +213,9 @@ const ReviewWorkspace = () => {
     } : null,
   });
 
-  // Summary: All items where journey was matched (journey_id exists) OR match_status is 'matched'
-  // CRITERIA: If journey_id exists OR match_status === 'matched' = goes to Summary tab
-  const summaryData = allReviewData.filter((item) => {
-    const hasJourney = item.journey_id || item.journeyId;
-    const matchStatus = item.match_status || item.matchStatus || item.status;
-    // Include items that are matched OR have a journey_id
-    return (hasJourney !== null && hasJourney !== undefined) || matchStatus === 'matched';
-  });
+  // Summary: Show ALL items (always show everything)
+  // Changed: Always show all items in Summary tab, regardless of match status
+  const summaryData = allReviewData; // Show all items always
 
   // Needs Review: Items where match_status is 'mismatch' (not matched, not skipped)
   // CRITERIA: match_status === 'mismatch' = Needs Review tab

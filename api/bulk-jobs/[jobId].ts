@@ -145,12 +145,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const contractedTotal = proforma?.total_amount || 0;
         const invoiceTotal = ocrData.totalAmount || ocrData.chargeBreakup?.totalPayableAmount || null;
 
+        // Extract data from static invoice structure or OCR structure
+        const loadId = journey?.load_id || ocrData.loadId || ocrData.lcuNumber || 'Unknown';
+        const journeyNo = journey?.journey_number || ocrData.journeyNumber || ocrData.lrNumber || 'Unknown';
+        const vehicle = journey?.vehicle_number || ocrData.vehicleNumber || 'Unknown';
+        const consignee = journey?.destination || ocrData.destination || 'Unknown';
+        
         return {
           id: item.id,
-          loadId: journey?.load_id || ocrData.loadId || 'Unknown',
-          journeyNo: journey?.journey_number || ocrData.journeyNumber || 'Unknown',
-          vehicle: journey?.vehicle_number || ocrData.vehicleNumber || 'Unknown',
-          consignee: journey?.destination || 'Unknown',
+          loadId: loadId,
+          journeyNo: journeyNo,
+          vehicle: vehicle,
+          consignee: consignee,
           transporter: transporterName,
           document: item.file_name,
           documentUrl: ocrData.fileUrl || item.storage_path || null,
@@ -172,6 +178,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             materialDetails: ocrData.materialDetails,
             error: ocrData.error,
             rawResponse: ocrData.rawResponse,
+            // Include static data fields
+            invoiceNumber: ocrData.invoiceNumber,
+            lrNumber: ocrData.lrNumber,
+            lcuNumber: ocrData.lcuNumber,
+            origin: ocrData.origin,
+            destination: ocrData.destination,
           },
           contractedCost: contractedTotal || null,
           invoiceAmount: invoiceTotal,
