@@ -199,41 +199,19 @@ const ReviewWorkspace = () => {
   const allReviewData = Array.isArray(reviewData) ? reviewData : [];
 
   // SUMMARY_PAGE_DATA - Frontend debug logging
-  console.log('SUMMARY_PAGE_DATA', {
-    items: allReviewData,
-    itemsCount: allReviewData.length,
-    job: safeJob,
-    firstItem: allReviewData[0] ? {
-      id: allReviewData[0].id,
-      match_status: allReviewData[0].match_status,
-      matchStatus: allReviewData[0].matchStatus,
-      status: allReviewData[0].status,
-      journey_id: allReviewData[0].journey_id,
-      journeyId: allReviewData[0].journeyId,
-      file_name: allReviewData[0].file_name,
-      loadId: allReviewData[0].loadId,
-    } : null,
-    allItems: allReviewData.map(item => ({
-      id: item.id,
-      file_name: item.file_name,
-      match_status: item.match_status,
-      journey_id: item.journey_id,
-    })),
+  console.log('SUMMARY_PAGE_DATA', { items: allReviewData });
+
+  // Summary: Filter items to show matched and needs_review items
+  // Make filter robust - check multiple field names and values
+  const summaryItems = allReviewData.filter((item) => {
+    const matchStatus = item.match_status || item.matchStatus || item.status;
+    return ['matched', 'mismatch', 'needs_review'].includes(matchStatus);
   });
 
-  // Summary: Show ALL items (always show everything)
-  // Changed: Always show all items in Summary tab, regardless of match status
-  const summaryData = allReviewData; // Show all items always
-  
-  console.log('SUMMARY_TAB_FILTER', {
-    allReviewDataCount: allReviewData.length,
-    summaryDataCount: summaryData.length,
-    summaryDataItems: summaryData.map(item => ({
-      id: item.id,
-      file_name: item.file_name,
-      match_status: item.match_status,
-    })),
-  });
+  console.log('SUMMARY_FILTERED_ITEMS', { summaryItems });
+
+  // Use summaryItems for Summary tab
+  const summaryData = summaryItems;
 
   // Needs Review: Items where match_status is 'mismatch' (not matched, not skipped)
   // CRITERIA: match_status === 'mismatch' = Needs Review tab

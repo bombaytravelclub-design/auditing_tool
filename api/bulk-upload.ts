@@ -441,6 +441,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           contractComparison: contractComparison,
         });
 
+        console.log('BULK_ITEM_INSERT_DEBUG', {
+          env: process.env.VERCEL ? 'vercel' : 'local',
+          bulk_job_id: bulkJob.id,
+          file_name: file.name,
+          match_status: matchStatus,
+        });
+
         const { data: jobItem, error: itemError } = await supabase
           .from('bulk_job_items')
           .insert({

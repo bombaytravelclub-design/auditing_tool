@@ -41,19 +41,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // SUMMARY_API_DEBUG - Comprehensive debug logging
       console.log('SUMMARY_API_DEBUG', {
+        env: process.env.VERCEL ? 'vercel' : 'local',
         jobId: jobId,
         itemCount: items?.length ?? 0,
-        firstItem: items?.[0] ? {
-          id: items[0].id,
-          file_name: items[0].file_name,
-          match_status: items[0].match_status,
-          journey_id: items[0].journey_id,
-          bulk_job_id: items[0].bulk_job_id,
-        } : null,
-        itemsError: itemsError ? {
-          code: itemsError.code,
-          message: itemsError.message,
-        } : null,
+        firstItem: items?.[0] ?? null,
+        error: itemsError,
       });
 
       if (itemsError) {
