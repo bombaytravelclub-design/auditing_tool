@@ -661,6 +661,61 @@ const ReviewWorkspace = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="skipped" className="mt-6">
+            <div className="rounded-lg border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">File Name</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">Load ID</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">Vehicle</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">Status</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">Reason</TableHead>
+                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wide">View Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {skippedData.length === 0 ? (
+                    <>
+                    <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No skipped items
+                      </TableCell>
+                    </TableRow>
+                    </>
+                  ) : (
+                    skippedData.map((item, index) => (
+                      <>
+                      <TableRow key={index} className="hover:bg-muted/50">
+                          <TableCell className="font-medium">{item.file_name || item.document || 'N/A'}</TableCell>
+                          <TableCell>{item.loadId || 'N/A'}</TableCell>
+                          <TableCell>{item.vehicle || 'N/A'}</TableCell>
+                        <TableCell>
+                          <StatusPill status="Skipped" />
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {item.reason || item.error_message || item.matchReason || 'No reason provided'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <Button 
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewVariance(item)}
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                        </TableCell>
+                      </TableRow>
+                      </>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
         </Tabs>
 
         {/* Journey Details Drawer */}
