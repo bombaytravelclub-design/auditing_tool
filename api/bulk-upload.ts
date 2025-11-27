@@ -260,6 +260,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         if (staticDataResult.error) {
           console.error(`❌ Static data lookup failed for ${file.name}:`, staticDataResult.error);
+          
+          // Still upload file and create item record so user can see what failed
+          const fileBuffer = Buffer.from(file.data, 'base64');
+          const storagePath = type.toLowerCase() === 'invoice' ? 'invoice' : 'pod';
+          const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          const fullStoragePath = `${storagePath}/${fileName}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(fullStoragePath, fileBuffer, {
+              contentType: file.type || 'application/octet-stream',
+              upsert: false,
+              cacheControl: '3600',
+            });
+
+          if (!uploadError) {
+            // Insert skipped item into database
+            const errorMessage = staticDataResult.error === 'STATIC_DATA_NOT_FOUND' 
+              ? staticDataResult.message || 'Invoice not found in static dataset'
+              : 'Could not extract invoice number from filename';
+            
+            const { data: skippedItem, error: skippedError } = await supabase
+              .from('bulk_job_items')
+              .insert({
+                bulk_job_id: bulkJob.id,
+                file_name: file.name,
+                storage_path: fullStoragePath,
+                journey_id: null,
+                ocr_extracted_data: { error: errorMessage, source: 'STATIC_LOOKUP_FAILED' },
+                ocr_confidence: null,
+                match_status: 'skipped',
+                match_details: {
+                  isMatched: false,
+                  matchScore: 0,
+                  matchReason: errorMessage,
+                  matchDetails: [],
+                },
+              })
+              .select('id')
+              .single();
+
+            if (skippedError) {
+              console.error(`❌ Error creating skipped item:`, skippedError);
+            } else {
+              console.log(`✅ Created skipped item:`, skippedItem?.id);
+            }
+          }
+          
           processedItems.push({
             fileName: file.name,
             status: 'skipped',
