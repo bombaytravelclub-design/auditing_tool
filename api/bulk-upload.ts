@@ -486,6 +486,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Verify items were actually saved before updating counts
+    const { data: savedItems, error: verifyItemsError } = await supabase
+      .from('bulk_job_items')
+      .select('id, match_status')
+      .eq('bulk_job_id', bulkJob.id);
+
+    if (verifyItemsError) {
+      console.error('❌ Error verifying saved items:', verifyItemsError);
+    } else {
+      console.log(`📊 Verification: Found ${savedItems?.length || 0} items in database for job ${bulkJob.id}`);
+      if (savedItems && savedItems.length > 0) {
+        const savedMatched = savedItems.filter(i => i.match_status === 'matched').length;
+        const savedMismatch = savedItems.filter(i => i.match_status === 'mismatch').length;
+        const savedSkipped = savedItems.filter(i => i.match_status === 'skipped').length;
+        console.log(`   Saved items breakdown: matched=${savedMatched}, mismatch=${savedMismatch}, skipped=${savedSkipped}`);
+      }
+    }
+
     // Update bulk job with final counts
     // Verify counts add up correctly
     const totalCounted = matchedCount + needsReviewCount + failedCount;
@@ -496,12 +514,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       failed: failedCount,
       totalCounted: totalCounted,
       difference: files.length - totalCounted,
+      savedItemsInDb: savedItems?.length || 0,
     });
     
     // Ensure failedCount accounts for any uncounted files (shouldn't happen, but safety check)
     const finalFailedCount = failedCount + Math.max(0, files.length - totalCounted);
     
-    await supabase
+    const { error: updateError } = await supabase
       .from('bulk_jobs')
       .update({
         processed_files: files.length,
@@ -512,6 +531,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         completed_at: new Date().toISOString(),
       })
       .eq('id', bulkJob.id);
+
+    if (updateError) {
+      console.error('❌ Error updating bulk job:', updateError);
+    } else {
+      console.log(`✅ Updated bulk job ${bulkJob.id} with final counts`);
+    }
 
     return res.status(200).json({
       success: true,
