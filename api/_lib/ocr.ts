@@ -109,10 +109,14 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
     const base64File = fileBuffer.toString('base64');
     console.log(`   Base64 length: ${base64File.length}`);
 
-    // Call Google Gemini Vision API
-    const prompt = `You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text.
+    // Call Google Gemini Vision API - explicitly request JSON output
+    const prompt = `You are an OCR assistant that extracts structured data from freight documents.
 
-${ocrPrompt}`;
+CRITICAL: You MUST return ONLY valid JSON. Do NOT include markdown code blocks, explanations, or any text outside the JSON object. Start your response with { and end with }.
+
+${ocrPrompt}
+
+Remember: Return ONLY the JSON object, nothing else.`;
 
     const result = await model.generateContent([
       prompt,
@@ -366,10 +370,14 @@ Return the data in this JSON format:
     const base64File = fileBuffer.toString('base64');
     console.log(`   Base64 length: ${base64File.length}`);
 
-    // Call Google Gemini Vision API
-    const prompt = `You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text.
+    // Call Google Gemini Vision API - explicitly request JSON output
+    const prompt = `You are an OCR assistant that extracts structured data from freight documents.
 
-${ocrPrompt}`;
+CRITICAL: You MUST return ONLY valid JSON. Do NOT include markdown code blocks, explanations, or any text outside the JSON object. Start your response with { and end with }.
+
+${ocrPrompt}
+
+Remember: Return ONLY the JSON object, nothing else.`;
 
     const result = await model.generateContent([
       prompt,

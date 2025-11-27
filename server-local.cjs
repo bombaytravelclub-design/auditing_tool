@@ -725,10 +725,14 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           
           let result;
           try {
-            // Gemini API format
-            const prompt = `You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text.
+            // Gemini API format - explicitly request JSON output
+            const prompt = `You are an OCR assistant that extracts structured data from freight documents.
 
-${ocrPrompt}`;
+CRITICAL: You MUST return ONLY valid JSON. Do NOT include markdown code blocks, explanations, or any text outside the JSON object. Start your response with { and end with }.
+
+${ocrPrompt}
+
+Remember: Return ONLY the JSON object, nothing else.`;
 
             result = await model.generateContent([
               prompt,
