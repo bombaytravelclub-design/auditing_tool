@@ -192,6 +192,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`   Detected MIME type: ${detectedMimeType}`);
         console.log(`   Buffer start (hex): ${hexStart.substring(0, 16)}...`);
         
+        // Reject PDFs BEFORE uploading or processing
+        if (detectedMimeType === 'application/pdf' || textStart.startsWith('%PDF')) {
+          console.error(`❌ PDF files are not supported. File "${file.name}" is a PDF.`);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: 'PDF files are not supported. Please convert PDF to image (PNG/JPEG) before uploading.',
+          });
+          failedCount++;
+          continue;
+        }
+        
+        // Validate that we have a valid image MIME type
+        const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        if (!validImageTypes.includes(detectedMimeType)) {
+          console.error(`❌ Invalid image format: ${detectedMimeType}`);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: `Invalid image format: ${detectedMimeType}. Only PNG, JPEG, GIF, and WebP are supported.`,
+          });
+          failedCount++;
+          continue;
+        }
+        
         console.log(`📄 File: ${file.name}, Detected MIME type: ${detectedMimeType}`);
         
         // Upload to Supabase Storage
