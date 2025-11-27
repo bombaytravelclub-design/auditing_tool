@@ -153,10 +153,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               packages: '18 Drums'
             }
           },
-          contractedCost: null,
+          contractedCost: 57000.00, // Static contracted cost
           invoiceAmount: 58169.23,
-          variance: null,
-          charges: [],
+          variance: 1169.23, // Invoice - Contracted
+          charges: [
+            {
+              id: 'base',
+              type: 'Base Freight',
+              contracted: 47000.00,
+              invoice: 47727.03,
+              variance: 727.03
+            },
+            {
+              id: 'toll',
+              type: 'Toll Charges',
+              contracted: 500.00,
+              invoice: 516.75,
+              variance: 16.75
+            },
+            {
+              id: 'unload',
+              type: 'Unloading Charges',
+              contracted: 1000.00,
+              invoice: 1052.18,
+              variance: 52.18
+            },
+            {
+              id: 'gst',
+              type: 'GST',
+              contracted: 8500.00,
+              invoice: 5915.52, // SGST + CGST
+              variance: -2584.48
+            }
+          ],
         },
         {
           id: 'static-item-2',
@@ -201,10 +230,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               packages: '18 Drums'
             }
           },
-          contractedCost: null,
+          contractedCost: 67000.00, // Static contracted cost
           invoiceAmount: 68187.13,
-          variance: null,
-          charges: [],
+          variance: 1187.13, // Invoice - Contracted
+          charges: [
+            {
+              id: 'base',
+              type: 'Base Freight',
+              contracted: 53000.00,
+              invoice: 53933.31,
+              variance: 933.31
+            },
+            {
+              id: 'toll',
+              type: 'Toll Charges',
+              contracted: 5500.00,
+              invoice: 5748.06,
+              variance: 248.06
+            },
+            {
+              id: 'unload',
+              type: 'Unloading Charges',
+              contracted: 1100.00,
+              invoice: 1200.00,
+              variance: 100.00
+            },
+            {
+              id: 'gst',
+              type: 'GST',
+              contracted: 7400.00,
+              invoice: 7305.76, // SGST + CGST
+              variance: -94.24
+            }
+          ],
         },
       ];
 

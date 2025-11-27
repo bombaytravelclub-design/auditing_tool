@@ -234,15 +234,57 @@ const ReviewWorkspace = () => {
         invoiceNumber: 'INV-24001',
         lrNumber: 'LR20257713',
         lcuNumber: 'LCU95304199',
+        origin: 'Bangalore, KA',
+        destination: 'Surat, GJ',
         chargeBreakup: {
           baseFreight: 47727.03,
           tollCharges: 516.75,
           unloadingCharges: 1052.18,
+          otherAddOnCharges: 0,
+          subtotalBeforeTax: 49295.96,
+          sgst: 2957.76,
+          cgst: 2957.76,
           totalPayableAmount: 58169.23
         },
+        materialDetails: {
+          description: 'Industrial chemicals (non-hazardous)',
+          quantityKg: 1764,
+          packages: '18 Drums'
+        }
       },
+      contractedCost: 57000.00,
       invoiceAmount: 58169.23,
-      charges: [],
+      variance: 1169.23,
+      charges: [
+        {
+          id: 'base',
+          type: 'Base Freight',
+          contracted: 47000.00,
+          invoice: 47727.03,
+          variance: 727.03
+        },
+        {
+          id: 'toll',
+          type: 'Toll Charges',
+          contracted: 500.00,
+          invoice: 516.75,
+          variance: 16.75
+        },
+        {
+          id: 'unload',
+          type: 'Unloading Charges',
+          contracted: 1000.00,
+          invoice: 1052.18,
+          variance: 52.18
+        },
+        {
+          id: 'gst',
+          type: 'GST',
+          contracted: 8500.00,
+          invoice: 5915.52,
+          variance: -2584.48
+        }
+      ],
     },
     {
       id: 'static-item-2',
@@ -264,15 +306,57 @@ const ReviewWorkspace = () => {
         invoiceNumber: 'INV-24005',
         lrNumber: 'LR20252184',
         lcuNumber: 'LCU33441066',
+        origin: 'Bangalore, KA',
+        destination: 'Hyderabad, TS',
         chargeBreakup: {
           baseFreight: 53933.31,
           tollCharges: 5748.06,
           unloadingCharges: 1200,
+          otherAddOnCharges: 0,
+          subtotalBeforeTax: 60881.37,
+          sgst: 3652.88,
+          cgst: 3652.88,
           totalPayableAmount: 68187.13
         },
+        materialDetails: {
+          description: 'Specialty additives',
+          quantityKg: 1800,
+          packages: '18 Drums'
+        }
       },
+      contractedCost: 67000.00,
       invoiceAmount: 68187.13,
-      charges: [],
+      variance: 1187.13,
+      charges: [
+        {
+          id: 'base',
+          type: 'Base Freight',
+          contracted: 53000.00,
+          invoice: 53933.31,
+          variance: 933.31
+        },
+        {
+          id: 'toll',
+          type: 'Toll Charges',
+          contracted: 5500.00,
+          invoice: 5748.06,
+          variance: 248.06
+        },
+        {
+          id: 'unload',
+          type: 'Unloading Charges',
+          contracted: 1100.00,
+          invoice: 1200.00,
+          variance: 100.00
+        },
+        {
+          id: 'gst',
+          type: 'GST',
+          contracted: 7400.00,
+          invoice: 7305.76,
+          variance: -94.24
+        }
+      ],
     },
   ];
 
