@@ -422,6 +422,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log(`✅ Created job item for ${file.name}:`, jobItem?.id);
 
+        // Update journey epod_status to 'approved' if POD is matched
+        if (type.toLowerCase() === 'pod' && isMatched && matchedJourney) {
+          console.log(`📝 Updating journey epod_status to 'approved' for journey ${matchedJourney.id}`);
+          const { error: epodUpdateError } = await supabase
+            .from('journeys')
+            .update({ epod_status: 'approved' })
+            .eq('id', matchedJourney.id);
+          
+          if (epodUpdateError) {
+            console.error(`⚠️ Failed to update epod_status for journey ${matchedJourney.id}:`, epodUpdateError);
+            // Don't fail the whole process, just log the error
+          } else {
+            console.log(`✅ Updated epod_status to 'approved' for journey ${matchedJourney.id}`);
+          }
+        }
+
         // Only increment counts AFTER successful insertion
         if (isMatched) {
           matchedCount++;
