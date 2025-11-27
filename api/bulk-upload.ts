@@ -375,9 +375,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: 'skipped',
             reason: `Database insert failed: ${itemError.message}`,
           });
-          // Adjust counts if item insertion failed (decrement if we incremented earlier)
-          if (isMatched) matchedCount--;
-          else if (needsReview) needsReviewCount--;
+          // Count as failed since insertion didn't succeed
           failedCount++;
           continue;
         }
@@ -385,9 +383,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`✅ Created job item for ${file.name}:`, jobItem?.id);
 
         // Only increment counts AFTER successful insertion
-        if (isMatched) matchedCount++;
-        else if (needsReview) needsReviewCount++;
-        else failedCount++;
+        if (isMatched) {
+          matchedCount++;
+        } else if (needsReview) {
+          needsReviewCount++;
+        } else {
+          failedCount++;
+        }
 
         processedItems.push({
           fileName: file.name,
@@ -409,15 +411,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Update bulk job with final counts
-    // Use explicit failedCount instead of calculated value to ensure accuracy
-    const finalFailedCount = failedCount + (files.length - matchedCount - needsReviewCount - failedCount);
+    // Verify counts add up correctly
+    const totalCounted = matchedCount + needsReviewCount + failedCount;
     console.log(`📊 Final counts:`, {
       totalFiles: files.length,
       matched: matchedCount,
       needsReview: needsReviewCount,
       failed: failedCount,
-      calculatedFailed: files.length - matchedCount - needsReviewCount,
+      totalCounted: totalCounted,
+      difference: files.length - totalCounted,
     });
+    
+    // Ensure failedCount accounts for any uncounted files (shouldn't happen, but safety check)
+    const finalFailedCount = failedCount + Math.max(0, files.length - totalCounted);
     
     await supabase
       .from('bulk_jobs')
@@ -425,7 +431,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         processed_files: files.length,
         matched_files: matchedCount,
         mismatch_files: needsReviewCount,
-        failed_files: failedCount, // Use explicit failedCount
+        failed_files: finalFailedCount,
         status: 'completed',
         completed_at: new Date().toISOString(),
       })
