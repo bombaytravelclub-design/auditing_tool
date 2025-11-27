@@ -7,9 +7,23 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Create Supabase client with service role key (bypasses RLS)
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    // Ensure we're using service role for storage operations
+    global: {
+      headers: {
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    },
+  }
 );
 
 // LR Number normalization function (same as local server)
@@ -165,22 +179,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Upload to Supabase Storage
         const storagePath = type.toLowerCase() === 'invoice' ? 'invoice' : 'pod';
         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const fullStoragePath = `${storagePath}/${fileName}`;
+        
+        console.log(`📤 Uploading file to storage: ${fullStoragePath}`);
+        console.log(`   File size: ${fileBuffer.length} bytes`);
+        console.log(`   MIME type: ${detectedMimeType}`);
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('documents')
-          .upload(`${storagePath}/${fileName}`, fileBuffer, {
+          .upload(fullStoragePath, fileBuffer, {
             contentType: detectedMimeType,
             upsert: false,
+            cacheControl: '3600',
           });
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          console.error('❌ Storage upload error:', uploadError);
+          console.error('   Error code:', uploadError.statusCode);
+          console.error('   Error message:', uploadError.message);
+          console.error('   Error name:', uploadError.name);
+          
+          // If RLS error, provide helpful message
+          if (uploadError.statusCode === '403' || uploadError.message?.includes('row-level security')) {
+            console.error('   ⚠️ RLS Policy Error: Storage bucket has RLS enabled.');
+            console.error('   Solution: Go to Supabase Dashboard → Storage → documents bucket → Policies');
+            console.error('   Create a policy that allows INSERT for service role or disable RLS for this bucket.');
+          }
+          
           processedItems.push({
             fileName: file.name,
             status: 'skipped',
-            reason: 'Upload failed',
+            reason: `Upload failed: ${uploadError.message || 'Storage RLS policy blocked upload'}`,
           });
           continue;
         }
+        
+        console.log(`✅ File uploaded successfully: ${fullStoragePath}`);
 
         // Get file URL
         const { data: urlData } = supabase.storage
