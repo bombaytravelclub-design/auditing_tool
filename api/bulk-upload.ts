@@ -339,6 +339,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           hasLoadId: !!ocrResult.loadId,
         });
 
+        // Fetch proforma data if matched (for debug logging)
+        let proforma = null;
+        let contractedCost = null;
+        let invoiceAmount = null;
+        
+        if (matchedJourney && type.toLowerCase() === 'invoice') {
+          const { data: proformaData } = await supabase
+            .from('proformas')
+            .select('id, total_amount')
+            .eq('journey_id', matchedJourney.id)
+            .limit(1)
+            .single();
+          proforma = proformaData;
+          contractedCost = proforma?.total_amount || null;
+        }
+        
+        invoiceAmount = ocrResult.totalAmount || ocrResult.chargeBreakup?.totalPayableAmount || null;
+
         // Prepare OCR extracted data for storage (match local server structure)
         const ocrExtractedData: any = {
           journeyNumber: ocrResult.journeyNumber,
@@ -389,13 +407,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           journey_id: matchedJourney?.id || null,
         });
 
-        console.log(`📝 Inserting bulk_job_item for ${file.name}:`, {
+        // BULK_ITEM_INSERT_DEBUG - Comprehensive debug logging
+        console.log('BULK_ITEM_INSERT_DEBUG', {
+          env: process.env.VERCEL ? 'vercel' : 'local',
           bulk_job_id: bulkJob.id,
           file_name: file.name,
-          storage_path: fullStoragePath,
-          journey_id: matchedJourney?.id || null,
           match_status: matchStatus,
-          has_ocr_data: !!ocrExtractedData,
+          journey_id: matchedJourney?.id ?? null,
+          proforma_id: proforma?.id ?? null,
+          contractedCost: contractedCost,
+          invoiceAmount: invoiceAmount,
+          isMatched: isMatched,
+          needsReview: needsReview,
+          ocr_journeyNumber: ocrResult.journeyNumber,
+          ocr_loadId: ocrResult.loadId,
         });
 
         const { data: jobItem, error: itemError } = await supabase

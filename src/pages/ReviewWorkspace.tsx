@@ -198,11 +198,28 @@ const ReviewWorkspace = () => {
   // Use ONLY real data from API - no mock data fallback
   const allReviewData = Array.isArray(reviewData) ? reviewData : [];
 
-  // Summary: All items where journey was matched (journey_id exists)
-  // CRITERIA: If journey_id exists = journey matched = goes to Summary tab
+  // SUMMARY_PAGE_DATA - Frontend debug logging
+  console.log('SUMMARY_PAGE_DATA', {
+    items: allReviewData,
+    itemsCount: allReviewData.length,
+    job: safeJob,
+    firstItem: allReviewData[0] ? {
+      id: allReviewData[0].id,
+      match_status: allReviewData[0].match_status,
+      matchStatus: allReviewData[0].matchStatus,
+      status: allReviewData[0].status,
+      journey_id: allReviewData[0].journey_id,
+      journeyId: allReviewData[0].journeyId,
+    } : null,
+  });
+
+  // Summary: All items where journey was matched (journey_id exists) OR match_status is 'matched'
+  // CRITERIA: If journey_id exists OR match_status === 'matched' = goes to Summary tab
   const summaryData = allReviewData.filter((item) => {
     const hasJourney = item.journey_id || item.journeyId;
-    return hasJourney !== null && hasJourney !== undefined; // Journey matched = Summary tab
+    const matchStatus = item.match_status || item.matchStatus || item.status;
+    // Include items that are matched OR have a journey_id
+    return (hasJourney !== null && hasJourney !== undefined) || matchStatus === 'matched';
   });
 
   // Needs Review: Items where NO journey was matched (journey_id is null) AND match_status is not 'skipped'
@@ -576,7 +593,7 @@ const ReviewWorkspace = () => {
                                 {JSON.stringify(job, null, 2)}
                               </pre>
                             </div>
-                          </TableCell>
+                      </TableCell>
                     </TableRow>
                       )}
                     </>
@@ -672,8 +689,8 @@ const ReviewWorkspace = () => {
                                 {reviewActions[item.loadId] === 'accepted' ? '✓ Approved' : '✗ Rejected'}
                               </span>
                             )}
-                          </TableCell>
-                        </TableRow>
+                        </TableCell>
+                      </TableRow>
                       </>
                     ))
                   )}
@@ -698,7 +715,7 @@ const ReviewWorkspace = () => {
                 <TableBody>
                   {skippedData.length === 0 ? (
                     <>
-                    <TableRow>
+                  <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No skipped items
                       </TableCell>
@@ -727,8 +744,8 @@ const ReviewWorkspace = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
-                        </TableCell>
-                      </TableRow>
+                    </TableCell>
+                  </TableRow>
                       </>
                     ))
                   )}

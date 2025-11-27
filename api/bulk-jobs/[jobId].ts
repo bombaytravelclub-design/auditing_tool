@@ -39,6 +39,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('bulk_job_id', jobId)
         .order('created_at', { ascending: false });
 
+      // SUMMARY_API_DEBUG - Comprehensive debug logging
+      console.log('SUMMARY_API_DEBUG', {
+        jobId: jobId,
+        itemCount: items?.length ?? 0,
+        firstItem: items?.[0] ? {
+          id: items[0].id,
+          file_name: items[0].file_name,
+          match_status: items[0].match_status,
+          journey_id: items[0].journey_id,
+          bulk_job_id: items[0].bulk_job_id,
+        } : null,
+        itemsError: itemsError ? {
+          code: itemsError.code,
+          message: itemsError.message,
+        } : null,
+      });
+
       if (itemsError) {
         console.error('❌ Error fetching items:', itemsError);
         console.error('   Error code:', itemsError.code);
@@ -164,8 +181,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }));
 
       console.log(`✅ Returning ${transformedItems.length} transformed items`);
-
-      return res.status(200).json({
+      
+      // Ensure items array is always present (even if empty)
+      const response = {
         success: true,
         job: {
           id: job.id,
@@ -177,8 +195,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           skipped: job.failed_files || 0,
           createdAt: job.created_at,
         },
-        items: transformedItems,
+        items: transformedItems || [], // Ensure items is always an array
+      };
+
+      console.log('SUMMARY_API_RESPONSE', {
+        jobId: jobId,
+        itemsCount: response.items.length,
+        firstItemMatchStatus: response.items[0]?.match_status || null,
+        firstItemJourneyId: response.items[0]?.journey_id || null,
       });
+
+      return res.status(200).json(response);
 
     } catch (error: any) {
       console.error('Error fetching bulk job:', error);
