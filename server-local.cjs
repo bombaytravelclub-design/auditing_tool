@@ -747,15 +747,17 @@ ${ocrPrompt}`;
             throw apiError;
           }
 
-          let content = completion.choices[0]?.message?.content || '{}';
+          // Extract response from Gemini
+          const response = await result.response;
+          let content = response.text() || '{}';
           const originalContent = content; // Keep original for fallback extraction
           
-          console.log(`📄 Raw OpenAI OCR Response (first 1000 chars):`, content.substring(0, 1000));
+          console.log(`📄 Raw Gemini OCR Response (first 1000 chars):`, content.substring(0, 1000));
           console.log(`📄 Full response length: ${content.length} chars`);
           
           if (!content || content === '{}' || content.trim().length === 0) {
-            console.error(`❌ Empty response from OpenAI API`);
-            throw new Error('Empty response from OpenAI API');
+            console.error(`❌ Empty response from Gemini API`);
+            throw new Error('Empty response from Gemini API');
           }
           
           // FALLBACK: Try to extract LR number from raw text before parsing JSON
