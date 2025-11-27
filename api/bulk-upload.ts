@@ -131,24 +131,24 @@ function normalizeLR(value: any): string {
 }
 
 // Find matching journey by LR number (primary) and Load ID (fallback)
-function findMatchingJourney(ocrData: any, journeysList: any[]) {
-  if (!ocrData || !journeysList || journeysList.length === 0) {
+function findMatchingJourney(data: any, journeysList: any[]) {
+  if (!data || !journeysList || journeysList.length === 0) {
     return null;
   }
 
-  // Extract LR and LCU from OCR (try multiple field names)
-  const ocrLRRaw = ocrData.journeyNumber || ocrData.invoiceDetails?.lrNo || ocrData.lrNo || ocrData.lr_number;
-  const ocrLR = normalizeLR(ocrLRRaw);
-  const ocrLoadRaw = ocrData.loadId || ocrData.invoiceDetails?.lcuNo || ocrData.lcuNo || ocrData.lcu_no;
-  const ocrLoad = normalizeLR(ocrLoadRaw);
+  // Extract LR and LCU from static data or OCR (try multiple field names)
+  const lrRaw = data.lrNumber || data.journeyNumber || data.invoiceDetails?.lrNo || data.lrNo || data.lr_number;
+  const lr = normalizeLR(lrRaw);
+  const loadRaw = data.lcuNumber || data.loadId || data.invoiceDetails?.lcuNo || data.lcuNo || data.lcu_no;
+  const load = normalizeLR(loadRaw);
 
   console.log(`🔍 Finding matching journey:`);
-  console.log(`   OCR LR (raw): "${ocrLRRaw}" → normalized: "${ocrLR}"`);
-  console.log(`   OCR Load ID (raw): "${ocrLoadRaw}" → normalized: "${ocrLoad}"`);
+  console.log(`   LR (raw): "${lrRaw}" → normalized: "${lr}"`);
+  console.log(`   Load ID/LCU (raw): "${loadRaw}" → normalized: "${load}"`);
   console.log(`   Available journeys: ${journeysList.length}`);
 
-  if (!ocrLR || ocrLR === '') {
-    console.log(`   ⚠️ WARNING: OCR LR is empty after normalization!`);
+  if (!lr || lr === '') {
+    console.log(`   ⚠️ WARNING: LR is empty after normalization!`);
     return null;
   }
 
@@ -156,9 +156,9 @@ function findMatchingJourney(ocrData: any, journeysList: any[]) {
   for (const journey of journeysList) {
     if (journey.journey_number) {
       const journeyLR = normalizeLR(journey.journey_number);
-      if (journeyLR === ocrLR) {
+      if (journeyLR === lr) {
         console.log(`   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅`);
-        console.log(`      OCR LR: "${ocrLR}"`);
+        console.log(`      LR: "${lr}"`);
         console.log(`      DB journey_number: "${journey.journey_number}" (normalized: "${journeyLR}")`);
         console.log(`      Journey ID: ${journey.id}`);
         return journey;
@@ -167,11 +167,11 @@ function findMatchingJourney(ocrData: any, journeysList: any[]) {
   }
 
   // Fallback: Match on Load ID/LCU
-  if (ocrLoad) {
+  if (load) {
     for (const journey of journeysList) {
       if (journey.load_id) {
         const journeyLoad = normalizeLR(journey.load_id);
-        if (journeyLoad === ocrLoad) {
+        if (journeyLoad === load) {
           console.log(`   ✅ Matched by Load ID/LCU: ${journey.load_id} (Journey ID: ${journey.id})`);
           return journey;
         }
