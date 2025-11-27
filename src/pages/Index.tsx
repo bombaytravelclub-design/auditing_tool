@@ -48,10 +48,12 @@ const Index = () => {
         setProformas(response.data);
         setError(null);
         toast.success(`Loaded ${response.total} proformas from database`);
-      } catch (err) {
-        console.error('Error loading proformas:', err);
-        setError('Failed to load data');
-        toast.error('Failed to load data from API');
+      } catch (err: any) {
+        console.error('❌ Error loading proformas:', err);
+        console.error('   Error message:', err.message);
+        console.error('   Error stack:', err.stack);
+        setError(err.message || 'Failed to load data');
+        toast.error(err.message || 'Failed to load data from API');
       } finally {
         setLoading(false);
       }

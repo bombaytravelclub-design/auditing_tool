@@ -94,10 +94,39 @@ app.get('/api/proformas', async (req, res) => {
       query = query.eq('category', category);
     }
 
+    // Handle epodStatus filter - Supabase doesn't support nested filters directly
+    // So we need to fetch journey IDs first, then filter proformas
+    let journeyIdsForEpodFilter = null;
     if (epodStatus) {
-      query = query
-        .not('journey_id', 'is', null)
-        .eq('journey.epod_status', epodStatus);
+      console.log(`🔍 Filtering by epodStatus: ${epodStatus}`);
+      const { data: journeysData, error: journeysError } = await supabase
+        .from('journeys')
+        .select('id')
+        .eq('epod_status', epodStatus);
+      
+      if (journeysError) {
+        console.error('❌ Error fetching journeys for epodStatus filter:', journeysError);
+        return res.status(500).json({
+          error: 'Failed to filter by epodStatus',
+          details: journeysError.message,
+        });
+      }
+      
+      journeyIdsForEpodFilter = (journeysData || []).map(j => j.id);
+      console.log(`✅ Found ${journeyIdsForEpodFilter.length} journeys with epodStatus=${epodStatus}`);
+      
+      if (journeyIdsForEpodFilter.length === 0) {
+        // No journeys match, return empty result
+        return res.json({
+          data: [],
+          total: 0,
+          page: pageNum,
+          limit: limitNum,
+        });
+      }
+      
+      // Filter proformas by journey IDs
+      query = query.in('journey_id', journeyIdsForEpodFilter);
     }
 
     query = query

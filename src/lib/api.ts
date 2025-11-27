@@ -99,11 +99,16 @@ export async function fetchProformas(params?: {
 
   const url = `${API_BASE_URL}/api/proformas${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   
+  console.log('🔍 fetchProformas - API URL:', url);
+  console.log('🔍 fetchProformas - API_BASE_URL:', API_BASE_URL);
+  
   try {
     const response = await fetch(url);
+    console.log('📡 fetchProformas - Response status:', response.status, response.statusText);
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('❌ fetchProformas - Error response:', errorText);
       let errorData;
       try {
         errorData = JSON.parse(errorText);
@@ -113,7 +118,15 @@ export async function fetchProformas(params?: {
       throw new Error(errorData.error || errorData.details || `API error: ${response.statusText}`);
     }
     
-    return response.json();
+    const jsonData = await response.json();
+    console.log('✅ fetchProformas - Response data:', {
+      hasData: !!jsonData.data,
+      dataLength: jsonData.data?.length || 0,
+      total: jsonData.total,
+      keys: Object.keys(jsonData)
+    });
+    
+    return jsonData;
   } catch (err: any) {
     console.error('❌ fetchProformas error:', err);
     if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
