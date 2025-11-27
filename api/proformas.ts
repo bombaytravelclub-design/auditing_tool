@@ -2,20 +2,23 @@
 // Returns proforma listing with filters
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
-// Import supabase lazily to avoid module load errors
-let supabase: any = null;
-async function getSupabase() {
-  if (!supabase) {
-    try {
-      const supabaseModule = await import('./_lib/supabase');
-      supabase = supabaseModule.supabase;
-    } catch (error: any) {
-      console.error('Failed to import Supabase:', error);
-      throw new Error(`Failed to initialize Supabase: ${error.message}`);
-    }
+// Initialize Supabase client directly in the handler to avoid module load issues
+function getSupabaseClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables');
   }
-  return supabase;
+
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 // Define types inline to avoid import issues
@@ -34,13 +37,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Get Supabase client
-    const supabaseClient = await getSupabase();
-    
-    if (!supabaseClient) {
-      console.error('❌ Supabase client not initialized');
+    let supabaseClient;
+    try {
+      supabaseClient = getSupabaseClient();
+    } catch (error: any) {
+      console.error('❌ Failed to initialize Supabase:', error);
       return res.status(500).json({
         error: 'Server configuration error',
-        details: 'Supabase client not initialized. Please check environment variables.',
+        details: error.message || 'Failed to initialize Supabase client',
       });
     }
 
