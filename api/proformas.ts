@@ -2,7 +2,21 @@
 // Returns proforma listing with filters
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './_lib/supabase';
+
+// Import supabase lazily to avoid module load errors
+let supabase: any = null;
+async function getSupabase() {
+  if (!supabase) {
+    try {
+      const supabaseModule = await import('./_lib/supabase');
+      supabase = supabaseModule.supabase;
+    } catch (error: any) {
+      console.error('Failed to import Supabase:', error);
+      throw new Error(`Failed to initialize Supabase: ${error.message}`);
+    }
+  }
+  return supabase;
+}
 
 // Define types inline to avoid import issues
 interface ProformaListResponse {
@@ -19,8 +33,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Check if supabase is available
-    if (!supabase) {
+    // Get Supabase client
+    const supabaseClient = await getSupabase();
+    
+    if (!supabaseClient) {
       console.error('❌ Supabase client not initialized');
       return res.status(500).json({
         error: 'Server configuration error',
@@ -43,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('📊 Fetching proformas with params:', { category, epodStatus, page: pageNum, limit: limitNum });
 
     // Build query with user details - proper nested join
-    let query = supabase
+    let query = supabaseClient
       .from('proformas')
       .select(`
         *,
@@ -65,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let journeyIdsForEpodFilter = null;
     if (epodStatus) {
       console.log(`🔍 Filtering by epodStatus: ${epodStatus}`);
-      const { data: journeysData, error: journeysError } = await supabase
+      const { data: journeysData, error: journeysError } = await supabaseClient
         .from('journeys')
         .select('id')
         .eq('epod_status', epodStatus);
