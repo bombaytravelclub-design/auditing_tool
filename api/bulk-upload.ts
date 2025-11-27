@@ -400,6 +400,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ocr_confidence: ocrResult.confidence || null,
             match_status: matchStatus, // Use correct enum value
             match_details: matchDetails, // Store match details in JSONB
+            status: 'pending_review', // Add status field (required by schema)
           })
           .select()
           .single();
