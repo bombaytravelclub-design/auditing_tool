@@ -107,41 +107,29 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
     console.log(`   Normalized MIME type: ${normalizedMimeType}`);
     
     const base64File = fileBuffer.toString('base64');
-    const imageDataUrl = `data:${normalizedMimeType};base64,${base64File}`;
-    console.log(`   Data URL prefix: data:${normalizedMimeType};base64,...`);
+    console.log(`   Base64 length: ${base64File.length}`);
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text."
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: ocrPrompt
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageDataUrl
-              }
-            }
-          ]
+    // Call Google Gemini Vision API
+    const prompt = `You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text.
+
+${ocrPrompt}`;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64File,
+          mimeType: normalizedMimeType
         }
-      ],
-      temperature: 0,
-      response_format: { type: "json_object" }
-    });
+      }
+    ]);
 
-    let content = completion.choices[0]?.message?.content || '{}';
+    const response = await result.response;
+    let content = response.text() || '{}';
     const originalContent = content;
 
     if (!content || content === '{}' || content.trim().length === 0) {
-      throw new Error('Empty response from OpenAI API');
+      throw new Error('Empty response from Gemini API');
     }
 
     // Clean JSON response - remove markdown code blocks
@@ -376,41 +364,29 @@ Return the data in this JSON format:
     console.log(`   Normalized MIME type: ${normalizedMimeType}`);
     
     const base64File = fileBuffer.toString('base64');
-    const imageDataUrl = `data:${normalizedMimeType};base64,${base64File}`;
-    console.log(`   Data URL prefix: data:${normalizedMimeType};base64,...`);
+    console.log(`   Base64 length: ${base64File.length}`);
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text."
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: ocrPrompt
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageDataUrl
-              }
-            }
-          ]
+    // Call Google Gemini Vision API
+    const prompt = `You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text.
+
+${ocrPrompt}`;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64File,
+          mimeType: normalizedMimeType
         }
-      ],
-      temperature: 0,
-      response_format: { type: "json_object" }
-    });
+      }
+    ]);
 
-    let content = completion.choices[0]?.message?.content || '{}';
+    const response = await result.response;
+    let content = response.text() || '{}';
     const originalContent = content;
 
     if (!content || content === '{}' || content.trim().length === 0) {
-      throw new Error('Empty response from OpenAI API');
+      throw new Error('Empty response from Gemini API');
     }
 
     // Clean JSON response

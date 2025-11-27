@@ -186,7 +186,7 @@ app.post('/api/bulk-upload', async (req, res) => {
     console.log(`   Environment check:`, {
       supabaseUrl: process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing',
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing',
-      openaiKey: process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Missing'
+      geminiKey: process.env.GEMINI_API_KEY ? '✅ Set' : '❌ Missing'
     });
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
@@ -464,7 +464,7 @@ app.post('/api/bulk-upload', async (req, res) => {
           ? supabase.storage.from('documents').getPublicUrl(storagePath)
           : { publicUrl: null };
 
-        // Real OCR extraction using OpenAI
+        // Real OCR extraction using Google Gemini
         console.log(`🔍 Running OCR on ${file.name}...`);
         let ocrResult;
         let matchedJourney = null;
@@ -683,7 +683,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           
           // Check if PDF
           if (isPdf || rawMimeType === 'application/pdf') {
-            throw new Error(`PDF files are not supported by OpenAI Vision API. The file "${file.name}" appears to be a PDF. Please convert it to an image (PNG/JPEG) before uploading.`);
+            throw new Error(`PDF files are not supported by Gemini Vision API. The file "${file.name}" appears to be a PDF. Please convert it to an image (PNG/JPEG) before uploading.`);
           }
           
           // Validate that we have a valid image MIME type
@@ -761,7 +761,7 @@ ${ocrPrompt}`;
           }
           
           // FALLBACK: Try to extract LR number from raw text before parsing JSON
-          // Sometimes OpenAI mentions LR numbers in explanations or text before JSON
+          // Sometimes Gemini mentions LR numbers in explanations or text before JSON
           let fallbackLRNumber = null;
           const lrPatterns = [
             /LR\s*No[:\s]+(LR\d+)/i,
@@ -990,14 +990,14 @@ ${ocrPrompt}`;
             console.error('📄 Available fields in parsed JSON:');
             console.error('   ', Object.keys(parsed || {}).join(', ') || 'None');
             console.error('');
-            console.error('📄 Raw OpenAI response (first 500 chars):');
+            console.error('📄 Raw Gemini response (first 500 chars):');
             console.error('   ', originalContent.substring(0, 500));
             console.error('');
             console.error('💡 Possible reasons:');
             console.error('   1. PDF image quality too low for OCR');
             console.error('   2. LR Number not visible in the document');
             console.error('   3. LR Number in unexpected format/location');
-            console.error('   4. OpenAI API not reading the PDF correctly');
+            console.error('   4. Gemini API not reading the image correctly');
             console.error('');
             console.error('🔧 This file will be marked as "needs_review" for manual processing.');
             console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -1896,7 +1896,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: {
       supabase: !!process.env.SUPABASE_URL,
-      openai: !!process.env.OPENAI_API_KEY,
+      gemini: !!process.env.GEMINI_API_KEY,
     }
   });
 });
