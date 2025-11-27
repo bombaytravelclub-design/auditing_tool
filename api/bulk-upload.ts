@@ -12,6 +12,71 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// LR Number normalization function (same as local server)
+function normalizeLR(value: any): string {
+  if (!value) return '';
+  return value
+    .toString()
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, ''); // removes spaces, dashes, /, etc.
+}
+
+// Find matching journey by LR number (primary) and Load ID (fallback)
+function findMatchingJourney(ocrData: any, journeysList: any[]) {
+  if (!ocrData || !journeysList || journeysList.length === 0) {
+    return null;
+  }
+
+  // Extract LR and LCU from OCR (try multiple field names)
+  const ocrLRRaw = ocrData.journeyNumber || ocrData.invoiceDetails?.lrNo || ocrData.lrNo || ocrData.lr_number;
+  const ocrLR = normalizeLR(ocrLRRaw);
+  const ocrLoadRaw = ocrData.loadId || ocrData.invoiceDetails?.lcuNo || ocrData.lcuNo || ocrData.lcu_no;
+  const ocrLoad = normalizeLR(ocrLoadRaw);
+
+  console.log(`🔍 Finding matching journey:`);
+  console.log(`   OCR LR (raw): "${ocrLRRaw}" → normalized: "${ocrLR}"`);
+  console.log(`   OCR Load ID (raw): "${ocrLoadRaw}" → normalized: "${ocrLoad}"`);
+  console.log(`   Available journeys: ${journeysList.length}`);
+
+  if (!ocrLR || ocrLR === '') {
+    console.log(`   ⚠️ WARNING: OCR LR is empty after normalization!`);
+    return null;
+  }
+
+  // Primary match: Match on journey_number (which IS the LR Number)
+  for (const journey of journeysList) {
+    if (journey.journey_number) {
+      const journeyLR = normalizeLR(journey.journey_number);
+      if (journeyLR === ocrLR) {
+        console.log(`   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅`);
+        console.log(`      OCR LR: "${ocrLR}"`);
+        console.log(`      DB journey_number: "${journey.journey_number}" (normalized: "${journeyLR}")`);
+        console.log(`      Journey ID: ${journey.id}`);
+        return journey;
+      }
+    }
+  }
+
+  // Fallback: Match on Load ID/LCU
+  if (ocrLoad) {
+    for (const journey of journeysList) {
+      if (journey.load_id) {
+        const journeyLoad = normalizeLR(journey.load_id);
+        if (journeyLoad === ocrLoad) {
+          console.log(`   ✅ Matched by Load ID/LCU: ${journey.load_id} (Journey ID: ${journey.id})`);
+          return journey;
+        }
+      }
+    }
+  }
+
+  console.log(`   ❌ NO MATCH FOUND`);
+  const availableLRs = journeysList.map(j => j.journey_number).filter(Boolean).slice(0, 10);
+  console.log(`   Available journey_number (LR) values:`, availableLRs);
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -29,7 +94,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Create bulk job record
-    // Note: Schema uses matched_files, mismatch_files, failed_files (not matched_count, needs_review_count, skipped_count)
     const { data: bulkJob, error: jobError } = await supabase
       .from('bulk_jobs')
       .insert({
@@ -40,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         mismatch_files: 0,
         failed_files: 0,
         status: 'processing',
-        uploaded_by: null, // TODO: Replace with actual user ID from auth
+        uploaded_by: null,
       })
       .select()
       .single();
@@ -50,16 +114,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Failed to create bulk job' });
     }
 
-    // Fetch selected journeys for matching
-    const { data: journeys, error: journeysError } = await supabase
+    // IMPORTANT: Fetch ALL journeys from database for matching, not just selected ones
+    // This allows OCR to match any journey by LR number, even if user didn't select it
+    console.log(`🔍 Fetching ALL journeys from database for matching (not just selected ones)...`);
+    
+    const { data: allJourneys, error: journeysError } = await supabase
       .from('journeys')
-      .select('id, journey_number, load_id, vehicle_number')
-      .in('id', journeyIds);
+      .select('id, journey_number, load_id, vehicle_number, epod_status');
 
     if (journeysError) {
       console.error('Error fetching journeys:', journeysError);
       return res.status(500).json({ error: 'Failed to fetch journeys' });
     }
+
+    if (!allJourneys || allJourneys.length === 0) {
+      console.error('❌ No journeys found in database!');
+      return res.status(500).json({ error: 'No journeys found in database' });
+    }
+
+    console.log(`✅ Fetched ${allJourneys.length} journeys for matching`);
 
     const processedItems = [];
     let matchedCount = 0;
@@ -72,10 +145,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const fileBuffer = Buffer.from(file.data, 'base64');
         
         // Upload to Supabase Storage
-        const fileName = `${Date.now()}-${file.name}`;
+        const storagePath = type.toLowerCase() === 'invoice' ? 'invoice' : 'pod';
+        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('documents')
-          .upload(`pod/${fileName}`, fileBuffer, {
+          .upload(`${storagePath}/${fileName}`, fileBuffer, {
             contentType: file.type,
             upsert: false,
           });
@@ -93,48 +167,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Get file URL
         const { data: urlData } = supabase.storage
           .from('documents')
-          .getPublicUrl(`pod/${fileName}`);
+          .getPublicUrl(`${storagePath}/${fileName}`);
 
         // Extract metadata using OCR
         const ocrResult = await extractPodMetadata(fileBuffer, file.type);
+        console.log(`📄 OCR Result for ${file.name}:`, {
+          journeyNumber: ocrResult.journeyNumber,
+          vehicleNumber: ocrResult.vehicleNumber,
+          loadId: ocrResult.loadId,
+          confidence: ocrResult.confidence,
+        });
 
-        // Find best matching journey
-        let matchedJourney = null;
-        let matchScore = 0;
-        let matchReason = '';
-
-        for (const journey of journeys || []) {
-          let score = 0;
-          const reasons = [];
-
-          if (ocrResult.loadId && journey.load_id.includes(ocrResult.loadId)) {
-            score += 50;
-            reasons.push('Load ID match');
-          }
-
-          if (ocrResult.vehicleNumber && journey.vehicle_number === ocrResult.vehicleNumber) {
-            score += 30;
-            reasons.push('Vehicle match');
-          }
-
-          if (ocrResult.journeyNumber && journey.journey_number.includes(ocrResult.journeyNumber)) {
-            score += 20;
-            reasons.push('Journey# match');
-          }
-
-          if (score > matchScore) {
-            matchScore = score;
-            matchedJourney = journey;
-            matchReason = reasons.join(', ');
-          }
-        }
+        // Find matching journey using sophisticated matching logic
+        const matchedJourney = findMatchingJourney(ocrResult, allJourneys);
 
         // Determine match status
-        const isMatched = matchScore >= 50;
-        const needsReview = matchScore > 0 && matchScore < 50;
+        const isMatched = !!matchedJourney;
+        const needsReview = !isMatched && (ocrResult.journeyNumber || ocrResult.loadId);
 
         if (isMatched) matchedCount++;
         if (needsReview) needsReviewCount++;
+
+        // Prepare OCR extracted data for storage
+        const ocrExtractedData: any = {
+          journeyNumber: ocrResult.journeyNumber,
+          vehicleNumber: ocrResult.vehicleNumber,
+          loadId: ocrResult.loadId,
+          confidence: ocrResult.confidence,
+        };
 
         // Insert into bulk_job_items
         const { data: jobItem, error: itemError } = await supabase
@@ -143,16 +203,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             bulk_job_id: bulkJob.id,
             file_name: file.name,
             file_url: urlData?.publicUrl,
-            journey_id: matchedJourney?.id,
-            ocr_extracted_data: {
-              vehicleNumber: ocrResult.vehicleNumber,
-              loadId: ocrResult.loadId,
-              journeyNumber: ocrResult.journeyNumber,
-              confidence: ocrResult.confidence,
-            },
+            journey_id: matchedJourney?.id || null,
+            ocr_extracted_data: ocrExtractedData,
             match_status: isMatched ? 'matched' : needsReview ? 'needs_review' : 'skipped',
-            match_score: matchScore,
-            match_reason: matchReason,
+            match_score: isMatched ? 100 : needsReview ? 50 : 0,
+            match_reason: isMatched 
+              ? `LR Number matched: ${ocrResult.journeyNumber} = ${matchedJourney?.journey_number}`
+              : needsReview 
+                ? 'Needs review - LR Number found but no match'
+                : 'No LR Number found in OCR',
             status: 'pending_review',
           })
           .select()
@@ -166,32 +225,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fileName: file.name,
           status: isMatched ? 'matched' : needsReview ? 'needs_review' : 'skipped',
           matchedJourneyId: matchedJourney?.id,
-          matchScore,
-          ocrData: {
-            vehicleNumber: ocrResult.vehicleNumber,
-            loadId: ocrResult.loadId,
-            journeyNumber: ocrResult.journeyNumber,
-            confidence: ocrResult.confidence,
-          },
+          matchScore: isMatched ? 100 : needsReview ? 50 : 0,
+          ocrData: ocrExtractedData,
         });
-
-        // Update POD document record
-        if (matchedJourney && isMatched) {
-          await supabase
-            .from('pod_documents')
-            .insert({
-              journey_id: matchedJourney.id,
-              file_name: file.name,
-              file_url: urlData?.publicUrl,
-              uploaded_by: 'mock-consignor-id',
-              ocr_metadata: {
-                vehicleNumber: ocrResult.vehicleNumber,
-                loadId: ocrResult.loadId,
-                journeyNumber: ocrResult.journeyNumber,
-                confidence: ocrResult.confidence,
-              },
-            });
-        }
 
       } catch (error: any) {
         console.error('Error processing file:', file.name, error);
@@ -204,7 +240,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Update bulk job with final counts
-    // Note: Schema uses matched_files, mismatch_files, failed_files
     await supabase
       .from('bulk_jobs')
       .update({
@@ -234,5 +269,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
-
-
