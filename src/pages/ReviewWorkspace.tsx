@@ -205,11 +205,19 @@ const ReviewWorkspace = () => {
     return hasJourney !== null && hasJourney !== undefined; // Journey matched = Summary tab
   });
 
-  // Needs Review: Items where NO journey was matched (journey_id is null)
-  // CRITERIA: If journey_id is null/undefined = no journey matched = Needs Review tab
+  // Needs Review: Items where NO journey was matched (journey_id is null) AND match_status is not 'skipped'
+  // CRITERIA: If journey_id is null/undefined AND match_status !== 'skipped' = Needs Review tab
   const needsReviewData = allReviewData.filter((item) => {
     const hasJourney = item.journey_id || item.journeyId;
-    return !hasJourney || hasJourney === null || hasJourney === undefined; // No journey matched = Needs Review tab
+    const matchStatus = item.match_status || item.matchStatus;
+    return (!hasJourney || hasJourney === null || hasJourney === undefined) && matchStatus !== 'skipped';
+  });
+
+  // Skipped: Items where match_status is 'skipped'
+  // CRITERIA: match_status === 'skipped' = Skipped tab
+  const skippedData = allReviewData.filter((item) => {
+    const matchStatus = item.match_status || item.matchStatus;
+    return matchStatus === 'skipped';
   });
 
   // Closed: Items where journey epod_status is 'approved'
@@ -446,6 +454,7 @@ const ReviewWorkspace = () => {
           <TabsList>
             <TabsTrigger value="summary">Summary ({summaryData?.length || 0})</TabsTrigger>
             <TabsTrigger value="review">Needs Review ({needsReviewData?.length || 0})</TabsTrigger>
+            <TabsTrigger value="skipped">Skipped ({skippedData?.length || 0})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="summary" className="mt-6">
