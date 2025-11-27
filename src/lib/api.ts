@@ -3,37 +3,33 @@
  * Fetches real data from Express API
  */
 
-// Auto-detect API URL based on environment
-const getApiBaseUrl = () => {
-  // Check if we're in browser environment
-  if (typeof window !== 'undefined') {
+// Auto-detect API URL based on environment (runtime, not build-time)
+function getApiBaseUrl() {
+  // Always check at runtime, not at module load time
+  if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
     const origin = window.location.origin;
     
     // If not localhost, we're on Vercel/production - use same origin
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      console.log('🌐 Production environment detected:', origin);
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('192.168.')) {
       return origin;
     }
     
     // Localhost - use local backend
-    console.log('🏠 Local development detected, using localhost:3000');
     return 'http://localhost:3000';
   }
   
   // Server-side or build time - use environment variable if set
   if (import.meta.env.VITE_API_URL) {
-    console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
   // Fallback to localhost for development
-  console.log('⚠️ Fallback to localhost:3000');
   return 'http://localhost:3000';
-};
+}
 
+// Get API URL at runtime, not module load time
 const API_BASE_URL = getApiBaseUrl();
-console.log('🔗 API_BASE_URL initialized to:', API_BASE_URL);
 
 // ============================================================================
 // Types matching backend response
@@ -113,10 +109,13 @@ export async function fetchProformas(params?: {
   if (params?.page) searchParams.append('page', params.page.toString());
   if (params?.limit) searchParams.append('limit', params.limit.toString());
 
-  const url = `${API_BASE_URL}/api/proformas${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  // Get API URL at runtime to ensure correct detection
+  const apiBase = getApiBaseUrl();
+  const url = `${apiBase}/api/proformas${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   
   console.log('🔍 fetchProformas - API URL:', url);
-  console.log('🔍 fetchProformas - API_BASE_URL:', API_BASE_URL);
+  console.log('🔍 fetchProformas - API_BASE_URL:', apiBase);
+  console.log('🔍 fetchProformas - window.location:', typeof window !== 'undefined' ? window.location.href : 'N/A');
   
   try {
     const response = await fetch(url);
