@@ -29,16 +29,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Create bulk job record
+    // Note: Schema uses matched_files, mismatch_files, failed_files (not matched_count, needs_review_count, skipped_count)
     const { data: bulkJob, error: jobError } = await supabase
       .from('bulk_jobs')
       .insert({
         job_type: type.toLowerCase(),
         total_files: files.length,
-        matched_count: 0,
-        needs_review_count: 0,
-        skipped_count: 0,
+        processed_files: 0,
+        matched_files: 0,
+        mismatch_files: 0,
+        failed_files: 0,
         status: 'processing',
-        uploaded_by: 'mock-consignor-id', // TODO: Replace with actual user ID from auth
+        uploaded_by: null, // TODO: Replace with actual user ID from auth
       })
       .select()
       .single();
@@ -202,13 +204,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Update bulk job with final counts
+    // Note: Schema uses matched_files, mismatch_files, failed_files
     await supabase
       .from('bulk_jobs')
       .update({
-        matched_count: matchedCount,
-        needs_review_count: needsReviewCount,
-        skipped_count: files.length - matchedCount - needsReviewCount,
+        processed_files: files.length,
+        matched_files: matchedCount,
+        mismatch_files: needsReviewCount,
+        failed_files: files.length - matchedCount - needsReviewCount,
         status: 'completed',
+        completed_at: new Date().toISOString(),
       })
       .eq('id', bulkJob.id);
 
