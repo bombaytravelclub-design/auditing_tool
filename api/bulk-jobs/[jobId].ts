@@ -20,87 +20,122 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     try {
-      // Fetch bulk job with related items
+      // Fetch bulk job first
       const { data: job, error: jobError } = await supabase
         .from('bulk_jobs')
-        .select(`
-          *,
-          items:bulk_job_items(
-            *,
-            journey:journeys(
-              id,
-              journey_number,
-              load_id,
-              vehicle_number,
-              origin,
-              destination,
-              transporter:transporter_id(full_name),
-              proforma:proformas(
-                base_freight,
-                detention_charge,
-                toll_charge,
-                unloading_charge,
-                other_charges,
-                total_amount
-              )
-            )
-          )
-        `)
+        .select('*')
         .eq('id', jobId)
         .single();
 
       if (jobError || !job) {
+        console.error('❌ Job not found:', jobError);
         return res.status(404).json({ error: 'Bulk job not found' });
       }
 
+      // Fetch items separately (more reliable than nested query)
+      const { data: items, error: itemsError } = await supabase
+        .from('bulk_job_items')
+        .select('*')
+        .eq('bulk_job_id', jobId);
+
+      if (itemsError) {
+        console.error('❌ Error fetching items:', itemsError);
+      }
+
+      console.log(`📊 Found ${items?.length || 0} items for job ${jobId}`);
+
       // Transform data for frontend
-      const transformedItems = job.items?.map((item: any) => {
-        const journey = item.journey;
-        const proforma = journey?.proforma?.[0];
-        const ocrData = item.ocr_extracted_data || {};
+      const transformedItems = await Promise.all((items || []).map(async (item: any) => {
+        // Parse OCR data if it's a string
+        let ocrData = item.ocr_extracted_data || {};
+        if (typeof ocrData === 'string') {
+          try {
+            ocrData = JSON.parse(ocrData);
+          } catch (e) {
+            console.error('Failed to parse OCR data:', e);
+            ocrData = {};
+          }
+        }
+
+        // Get journey if exists
+        let journey = null;
+        let transporterName = 'Unknown';
+        let proforma = null;
+
+        if (item.journey_id) {
+          const { data: journeyData } = await supabase
+            .from('journeys')
+            .select('id, journey_number, load_id, vehicle_number, origin, destination, transporter_id, epod_status')
+            .eq('id', item.journey_id)
+            .single();
+          
+          journey = journeyData;
+
+          // Get transporter name
+          if (journey?.transporter_id) {
+            const { data: transporter } = await supabase
+              .from('users')
+              .select('full_name')
+              .eq('id', journey.transporter_id)
+              .single();
+            transporterName = transporter?.full_name || 'Unknown';
+          }
+
+          // Get proforma
+          const { data: proformaData } = await supabase
+            .from('proformas')
+            .select('base_freight, toll_charge, unloading_charge, detention_charge, other_charges, gst_amount, total_amount')
+            .eq('journey_id', journey.id)
+            .limit(1)
+            .single();
+          proforma = proformaData;
+        }
 
         // Calculate contracted charges
         const contractedCharges = proforma ? [
-          { id: 'base', type: 'Base Freight', contracted: proforma.base_freight, invoice: proforma.base_freight, variance: 0 },
-          { id: 'toll', type: 'Toll Charges', contracted: proforma.toll_charge, invoice: proforma.toll_charge, variance: 0 },
-          { id: 'unload', type: 'Unloading Charges', contracted: proforma.unloading_charge, invoice: proforma.unloading_charge, variance: 0 },
+          { id: 'base', type: 'Base Freight', contracted: proforma.base_freight || 0, invoice: ocrData.baseFreight || ocrData.chargeBreakup?.baseFreight || 0, variance: (ocrData.baseFreight || ocrData.chargeBreakup?.baseFreight || 0) - (proforma.base_freight || 0) },
+          { id: 'toll', type: 'Toll Charges', contracted: proforma.toll_charge || 0, invoice: ocrData.chargeBreakup?.tollCharges || ocrData.charges?.find((c: any) => c.type === 'Toll Charges')?.amount || 0, variance: (ocrData.chargeBreakup?.tollCharges || ocrData.charges?.find((c: any) => c.type === 'Toll Charges')?.amount || 0) - (proforma.toll_charge || 0) },
+          { id: 'unload', type: 'Unloading Charges', contracted: proforma.unloading_charge || 0, invoice: ocrData.chargeBreakup?.unloadingCharges || ocrData.charges?.find((c: any) => c.type === 'Unloading Charges')?.amount || 0, variance: (ocrData.chargeBreakup?.unloadingCharges || ocrData.charges?.find((c: any) => c.type === 'Unloading Charges')?.amount || 0) - (proforma.unloading_charge || 0) },
         ] : [];
 
-        // For demo, we'll show actual variance if OCR extracted invoice amounts
-        // In real scenario, OCR would extract invoice charges
+        // Calculate totals
         const contractedTotal = proforma?.total_amount || 0;
+        const invoiceTotal = ocrData.totalAmount || ocrData.chargeBreakup?.totalPayableAmount || null;
 
         return {
           id: item.id,
-          loadId: journey?.load_id || 'Unknown',
-          journeyNo: journey?.journey_number || 'Unknown',
+          loadId: journey?.load_id || ocrData.loadId || 'Unknown',
+          journeyNo: journey?.journey_number || ocrData.journeyNumber || 'Unknown',
           vehicle: journey?.vehicle_number || ocrData.vehicleNumber || 'Unknown',
           consignee: journey?.destination || 'Unknown',
-          transporter: journey?.transporter?.full_name || 'Unknown',
+          transporter: transporterName,
           document: item.file_name,
-          documentUrl: item.file_url,
-          file_name: item.file_name, // Include file_name for skipped tab
-          journey_id: item.journey_id, // Include journey_id for filtering
-          match_status: item.match_status, // Include match_status for filtering
-          matchStatus: item.match_status, // Include both field names for compatibility
-          autoApproval: item.match_status === 'matched' ? 'Passed' : 'Failed',
-          matchScore: item.match_score || 0,
-          matchReason: item.match_reason || item.match_details?.matchReason || '',
-          status: item.status,
-          error_message: item.error_message, // Include error_message for skipped items
-          reason: item.error_message || item.match_details?.matchReason || '', // Include reason for skipped items
+          documentUrl: ocrData.fileUrl || item.storage_path || null,
+          file_name: item.file_name,
+          journey_id: item.journey_id,
+          match_status: item.match_status,
+          matchStatus: item.match_status,
+          autoApproval: item.match_status === 'matched' ? 'Passed' : (item.match_status === 'mismatch' ? 'Failed' : 'Pending'),
+          matchScore: item.match_details?.matchScore || 0,
+          matchReason: item.match_details?.matchReason || '',
+          status: item.match_status || 'pending_review',
+          error_message: item.error_message,
+          reason: item.error_message || item.match_details?.matchReason || '',
+          epod_status: journey?.epod_status || null,
           ocrData: {
-            vehicleNumber: ocrData.vehicleNumber,
-            loadId: ocrData.loadId,
-            journeyNumber: ocrData.journeyNumber,
-            confidence: ocrData.confidence,
+            ...ocrData,
+            invoiceDetails: ocrData.invoiceDetails,
+            chargeBreakup: ocrData.chargeBreakup,
+            materialDetails: ocrData.materialDetails,
+            error: ocrData.error,
+            rawResponse: ocrData.rawResponse,
           },
-          contractedCost: contractedTotal,
-          invoiceAmount: contractedTotal, // TODO: Extract from invoice PDF
-          variance: 0, // TODO: Calculate from extracted invoice data
+          contractedCost: contractedTotal || null,
+          invoiceAmount: invoiceTotal,
+          variance: contractedTotal && invoiceTotal !== null ? (invoiceTotal - contractedTotal) : null,
           charges: contractedCharges,
         };
-      }) || [];
+      }));
 
       return res.status(200).json({
         success: true,
