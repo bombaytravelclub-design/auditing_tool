@@ -87,109 +87,141 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('   3. Job ID mismatch');
       }
 
-      // Transform data for frontend
+      // Transform data for frontend - ALWAYS return items, even if skipped
       const transformedItems = await Promise.all((items || []).map(async (item: any) => {
-        // Parse OCR data if it's a string
-        let ocrData = item.ocr_extracted_data || {};
-        if (typeof ocrData === 'string') {
-          try {
-            ocrData = JSON.parse(ocrData);
-          } catch (e) {
-            console.error('Failed to parse OCR data:', e);
-            ocrData = {};
+        try {
+          // Parse OCR data if it's a string
+          let ocrData = item.ocr_extracted_data || {};
+          if (typeof ocrData === 'string') {
+            try {
+              ocrData = JSON.parse(ocrData);
+            } catch (e) {
+              console.error('Failed to parse OCR data:', e);
+              ocrData = {};
+            }
           }
-        }
 
-        // Get journey if exists
-        let journey = null;
-        let transporterName = 'Unknown';
-        let proforma = null;
+          // Get journey if exists
+          let journey = null;
+          let transporterName = 'Unknown';
+          let proforma = null;
 
-        if (item.journey_id) {
-          const { data: journeyData } = await supabase
-            .from('journeys')
-            .select('id, journey_number, load_id, vehicle_number, origin, destination, transporter_id, epod_status')
-            .eq('id', item.journey_id)
-            .single();
-          
-          journey = journeyData;
-
-          // Get transporter name
-          if (journey?.transporter_id) {
-            const { data: transporter } = await supabase
-              .from('users')
-              .select('full_name')
-              .eq('id', journey.transporter_id)
+          if (item.journey_id) {
+            const { data: journeyData } = await supabase
+              .from('journeys')
+              .select('id, journey_number, load_id, vehicle_number, origin, destination, transporter_id, epod_status')
+              .eq('id', item.journey_id)
               .single();
-            transporterName = transporter?.full_name || 'Unknown';
+            
+            journey = journeyData;
+
+            // Get transporter name
+            if (journey?.transporter_id) {
+              const { data: transporter } = await supabase
+                .from('users')
+                .select('full_name')
+                .eq('id', journey.transporter_id)
+                .single();
+              transporterName = transporter?.full_name || 'Unknown';
+            }
+
+            // Get proforma
+            const { data: proformaData } = await supabase
+              .from('proformas')
+              .select('base_freight, toll_charge, unloading_charge, detention_charge, other_charges, gst_amount, total_amount')
+              .eq('journey_id', journey.id)
+              .limit(1)
+              .single();
+            proforma = proformaData;
           }
 
-          // Get proforma
-          const { data: proformaData } = await supabase
-            .from('proformas')
-            .select('base_freight, toll_charge, unloading_charge, detention_charge, other_charges, gst_amount, total_amount')
-            .eq('journey_id', journey.id)
-            .limit(1)
-            .single();
-          proforma = proformaData;
+          // Calculate contracted charges
+          const contractedCharges = proforma ? [
+            { id: 'base', type: 'Base Freight', contracted: proforma.base_freight || 0, invoice: ocrData.baseFreight || ocrData.chargeBreakup?.baseFreight || 0, variance: (ocrData.baseFreight || ocrData.chargeBreakup?.baseFreight || 0) - (proforma.base_freight || 0) },
+            { id: 'toll', type: 'Toll Charges', contracted: proforma.toll_charge || 0, invoice: ocrData.chargeBreakup?.tollCharges || ocrData.charges?.find((c: any) => c.type === 'Toll Charges')?.amount || 0, variance: (ocrData.chargeBreakup?.tollCharges || ocrData.charges?.find((c: any) => c.type === 'Toll Charges')?.amount || 0) - (proforma.toll_charge || 0) },
+            { id: 'unload', type: 'Unloading Charges', contracted: proforma.unloading_charge || 0, invoice: ocrData.chargeBreakup?.unloadingCharges || ocrData.charges?.find((c: any) => c.type === 'Unloading Charges')?.amount || 0, variance: (ocrData.chargeBreakup?.unloadingCharges || ocrData.charges?.find((c: any) => c.type === 'Unloading Charges')?.amount || 0) - (proforma.unloading_charge || 0) },
+          ] : [];
+
+          // Calculate totals
+          const contractedTotal = proforma?.total_amount || 0;
+          const invoiceTotal = ocrData.totalAmount || ocrData.chargeBreakup?.totalPayableAmount || null;
+
+          // Extract data from static invoice structure or OCR structure
+          // For skipped items, use file name or default values
+          const loadId = journey?.load_id || ocrData.loadId || ocrData.lcuNumber || (item.file_name || 'Unknown');
+          const journeyNo = journey?.journey_number || ocrData.journeyNumber || ocrData.lrNumber || (item.file_name || 'Unknown');
+          const vehicle = journey?.vehicle_number || ocrData.vehicleNumber || 'Unknown';
+          const consignee = journey?.destination || ocrData.destination || 'Unknown';
+          
+          return {
+            id: item.id,
+            loadId: loadId,
+            journeyNo: journeyNo,
+            vehicle: vehicle,
+            consignee: consignee,
+            transporter: transporterName,
+            document: item.file_name || 'Unknown',
+            documentUrl: ocrData.fileUrl || item.storage_path || null,
+            file_name: item.file_name || 'Unknown',
+            journey_id: item.journey_id,
+            match_status: item.match_status || 'skipped',
+            matchStatus: item.match_status || 'skipped',
+            autoApproval: item.match_status === 'matched' ? 'Passed' : (item.match_status === 'mismatch' ? 'Failed' : 'Pending'),
+            matchScore: item.match_details?.matchScore || 0,
+            matchReason: item.match_details?.matchReason || item.error_message || 'No match found',
+            status: item.match_status || 'pending_review',
+            error_message: item.error_message,
+            reason: item.error_message || item.match_details?.matchReason || 'No match found',
+            epod_status: journey?.epod_status || null,
+            ocrData: {
+              ...ocrData,
+              invoiceDetails: ocrData.invoiceDetails,
+              chargeBreakup: ocrData.chargeBreakup,
+              materialDetails: ocrData.materialDetails,
+              error: ocrData.error,
+              rawResponse: ocrData.rawResponse,
+              // Include static data fields
+              invoiceNumber: ocrData.invoiceNumber,
+              lrNumber: ocrData.lrNumber,
+              lcuNumber: ocrData.lcuNumber,
+              origin: ocrData.origin,
+              destination: ocrData.destination,
+            },
+            contractedCost: contractedTotal || null,
+            invoiceAmount: invoiceTotal,
+            variance: contractedTotal && invoiceTotal !== null ? (invoiceTotal - contractedTotal) : null,
+            charges: contractedCharges,
+          };
+        } catch (error: any) {
+          // If transformation fails, return a minimal item structure
+          console.error(`Error transforming item ${item.id}:`, error);
+          return {
+            id: item.id,
+            loadId: item.file_name || 'Unknown',
+            journeyNo: item.file_name || 'Unknown',
+            vehicle: 'Unknown',
+            consignee: 'Unknown',
+            transporter: 'Unknown',
+            document: item.file_name || 'Unknown',
+            documentUrl: item.storage_path || null,
+            file_name: item.file_name || 'Unknown',
+            journey_id: item.journey_id,
+            match_status: item.match_status || 'skipped',
+            matchStatus: item.match_status || 'skipped',
+            autoApproval: 'Pending',
+            matchScore: 0,
+            matchReason: item.error_message || 'Error processing item',
+            status: item.match_status || 'pending_review',
+            error_message: item.error_message,
+            reason: item.error_message || 'Error processing item',
+            epod_status: null,
+            ocrData: {},
+            contractedCost: null,
+            invoiceAmount: null,
+            variance: null,
+            charges: [],
+          };
         }
-
-        // Calculate contracted charges
-        const contractedCharges = proforma ? [
-          { id: 'base', type: 'Base Freight', contracted: proforma.base_freight || 0, invoice: ocrData.baseFreight || ocrData.chargeBreakup?.baseFreight || 0, variance: (ocrData.baseFreight || ocrData.chargeBreakup?.baseFreight || 0) - (proforma.base_freight || 0) },
-          { id: 'toll', type: 'Toll Charges', contracted: proforma.toll_charge || 0, invoice: ocrData.chargeBreakup?.tollCharges || ocrData.charges?.find((c: any) => c.type === 'Toll Charges')?.amount || 0, variance: (ocrData.chargeBreakup?.tollCharges || ocrData.charges?.find((c: any) => c.type === 'Toll Charges')?.amount || 0) - (proforma.toll_charge || 0) },
-          { id: 'unload', type: 'Unloading Charges', contracted: proforma.unloading_charge || 0, invoice: ocrData.chargeBreakup?.unloadingCharges || ocrData.charges?.find((c: any) => c.type === 'Unloading Charges')?.amount || 0, variance: (ocrData.chargeBreakup?.unloadingCharges || ocrData.charges?.find((c: any) => c.type === 'Unloading Charges')?.amount || 0) - (proforma.unloading_charge || 0) },
-        ] : [];
-
-        // Calculate totals
-        const contractedTotal = proforma?.total_amount || 0;
-        const invoiceTotal = ocrData.totalAmount || ocrData.chargeBreakup?.totalPayableAmount || null;
-
-        // Extract data from static invoice structure or OCR structure
-        const loadId = journey?.load_id || ocrData.loadId || ocrData.lcuNumber || 'Unknown';
-        const journeyNo = journey?.journey_number || ocrData.journeyNumber || ocrData.lrNumber || 'Unknown';
-        const vehicle = journey?.vehicle_number || ocrData.vehicleNumber || 'Unknown';
-        const consignee = journey?.destination || ocrData.destination || 'Unknown';
-        
-        return {
-          id: item.id,
-          loadId: loadId,
-          journeyNo: journeyNo,
-          vehicle: vehicle,
-          consignee: consignee,
-          transporter: transporterName,
-          document: item.file_name,
-          documentUrl: ocrData.fileUrl || item.storage_path || null,
-          file_name: item.file_name,
-          journey_id: item.journey_id,
-          match_status: item.match_status,
-          matchStatus: item.match_status,
-          autoApproval: item.match_status === 'matched' ? 'Passed' : (item.match_status === 'mismatch' ? 'Failed' : 'Pending'),
-          matchScore: item.match_details?.matchScore || 0,
-          matchReason: item.match_details?.matchReason || '',
-          status: item.match_status || 'pending_review',
-          error_message: item.error_message,
-          reason: item.error_message || item.match_details?.matchReason || '',
-          epod_status: journey?.epod_status || null,
-          ocrData: {
-            ...ocrData,
-            invoiceDetails: ocrData.invoiceDetails,
-            chargeBreakup: ocrData.chargeBreakup,
-            materialDetails: ocrData.materialDetails,
-            error: ocrData.error,
-            rawResponse: ocrData.rawResponse,
-            // Include static data fields
-            invoiceNumber: ocrData.invoiceNumber,
-            lrNumber: ocrData.lrNumber,
-            lcuNumber: ocrData.lcuNumber,
-            origin: ocrData.origin,
-            destination: ocrData.destination,
-          },
-          contractedCost: contractedTotal || null,
-          invoiceAmount: invoiceTotal,
-          variance: contractedTotal && invoiceTotal !== null ? (invoiceTotal - contractedTotal) : null,
-          charges: contractedCharges,
-        };
       }));
 
       console.log(`✅ Returning ${transformedItems.length} transformed items`);
