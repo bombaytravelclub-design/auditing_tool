@@ -11,17 +11,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check environment variables early
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('❌ Missing environment variables:');
-    console.error('   SUPABASE_URL:', process.env.SUPABASE_URL ? '✓' : '✗');
-    console.error('   SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓' : '✗');
-    return res.status(500).json({
-      error: 'Server configuration error',
-      details: 'Missing Supabase environment variables. Please check Vercel environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY',
-    });
-  }
-
   try {
     // Parse query parameters
     const {

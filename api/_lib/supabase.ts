@@ -3,42 +3,33 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Check environment variables
+// Get environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Create Supabase client with service role key
-// This bypasses RLS and gives full access (needed for serverless functions)
-let supabaseClient: SupabaseClient | null = null;
-
-function getSupabaseClient(): SupabaseClient {
-  if (!supabaseUrl || !supabaseKey) {
-    const errorMsg = 'Missing Supabase environment variables. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY';
-    console.error('❌', errorMsg);
-    console.error('   SUPABASE_URL:', supabaseUrl ? '✓' : '✗');
-    console.error('   SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓' : '✗');
-    throw new Error(errorMsg);
-  }
-  
-  if (!supabaseClient) {
-    supabaseClient = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-  }
-  
-  return supabaseClient;
+// Validate environment variables
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing Supabase environment variables:');
+  console.error('   SUPABASE_URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
+  console.error('   SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Set' : '✗ Missing');
+  throw new Error(
+    'Missing Supabase environment variables. ' +
+    'Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.'
+  );
 }
 
-// Export Supabase client - will throw helpful error if env vars missing
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(target, prop) {
-    const client = getSupabaseClient();
-    return (client as any)[prop];
+// Create Supabase client with service role key
+// This bypasses RLS and gives full access (needed for serverless functions)
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl,
+  supabaseKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
   }
-});
+);
 
 // Storage bucket names
 export const STORAGE_BUCKETS = {
