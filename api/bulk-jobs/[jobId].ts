@@ -269,21 +269,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Transform data for frontend - ALWAYS return items, even if skipped
       // If no items, use static data as fallback
       let itemsToTransform = items || [];
+      let useStaticItems = false;
       
       if (!items || items.length === 0) {
         console.log('⚠️ No items found in database for job:', jobId);
         console.log('   Using STATIC ITEMS as fallback');
-        itemsToTransform = STATIC_ITEMS.map(item => ({
-          id: item.id,
-          file_name: item.file_name,
-          match_status: item.match_status,
-          journey_id: item.journey_id,
-          ocr_extracted_data: item.ocrData,
-          match_details: {
-            matchScore: item.matchScore,
-            matchReason: item.matchReason,
+        itemsToTransform = STATIC_ITEMS;
+        useStaticItems = true;
+      }
+
+      // If using static items, return them as-is (already fully formatted)
+      if (useStaticItems) {
+        console.log('✅ Returning static items as-is:', {
+          itemsCount: STATIC_ITEMS.length,
+          firstItemCharges: STATIC_ITEMS[0]?.charges?.length,
+        });
+        return res.status(200).json({
+          success: true,
+          job: {
+            id: job.id,
+            type: job.job_type,
+            status: job.status,
+            totalFiles: job.total_files,
+            matched: job.matched_files || 0,
+            needsReview: job.mismatch_files || 0,
+            skipped: job.failed_files || 0,
+            createdAt: job.created_at,
           },
-        }));
+          items: STATIC_ITEMS,
+        });
       }
 
       const transformedItems = await Promise.all(itemsToTransform.map(async (item: any) => {
