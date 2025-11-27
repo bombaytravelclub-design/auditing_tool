@@ -13,7 +13,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5174', 'http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -582,14 +587,33 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 }`;
           }
 
+          // Detect file type and handle PDFs vs images
+          const rawMimeType = file.type || 'application/pdf';
+          const isPdf = rawMimeType === 'application/pdf' || fileBuffer.slice(0, 4).toString() === '%PDF';
+          
+          if (isPdf) {
+            throw new Error('PDF files are not supported by OpenAI Vision API. Please convert PDF to image (PNG/JPEG) before uploading.');
+          }
+          
+          // Normalize image MIME type
+          const validImageTypes = {
+            'image/png': 'image/png',
+            'image/jpeg': 'image/jpeg',
+            'image/jpg': 'image/jpeg',
+            'image/gif': 'image/gif',
+            'image/webp': 'image/webp',
+          };
+          
+          const normalizedMimeType = validImageTypes[rawMimeType.toLowerCase()] || 'image/png';
+          
           // Convert buffer to base64 data URL
           const base64File = fileBuffer.toString('base64');
-          const mimeType = file.type || 'application/pdf';
-          const imageDataUrl = `data:${mimeType};base64,${base64File}`;
+          const imageDataUrl = `data:${normalizedMimeType};base64,${base64File}`;
           
           // Call OpenAI Vision API (gpt-4o supports vision)
           console.log(`📤 Calling OpenAI API for file: ${file.name}`);
-          console.log(`   File type: ${mimeType}`);
+          console.log(`   Original MIME type: ${rawMimeType}`);
+          console.log(`   Normalized MIME type: ${normalizedMimeType}`);
           console.log(`   Base64 length: ${base64File.length}`);
           
           let completion;
