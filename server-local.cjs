@@ -474,11 +474,15 @@ app.post('/api/bulk-upload', async (req, res) => {
         let ocrError = null; // Initialize ocrError variable
 
         try {
-          // Use OpenAI for OCR (CommonJS compatible)
-          const OpenAI = require('openai');
-          const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-          });
+          // Use Google Gemini for OCR (CommonJS compatible)
+          const { GoogleGenerativeAI } = require('@google/generative-ai');
+          
+          if (!process.env.GEMINI_API_KEY) {
+            throw new Error('Missing GEMINI_API_KEY environment variable');
+          }
+          
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
           // Prepare OCR prompt based on document type
           // PRIORITY: Extract LR Number (journeyNumber) - it's the unique key for matching
@@ -713,46 +717,32 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
             throw new Error(`Failed to create valid data URL for MIME type: ${normalizedMimeType}`);
           }
           
-          // Call OpenAI Vision API (gpt-4o supports vision)
-          console.log(`📤 Calling OpenAI API for file: ${file.name}`);
+          // Call Google Gemini Vision API
+          console.log(`📤 Calling Gemini API for file: ${file.name}`);
           console.log(`   Detected MIME type: ${rawMimeType}`);
           console.log(`   Normalized MIME type: ${normalizedMimeType}`);
           console.log(`   Base64 length: ${base64File.length}`);
-          console.log(`   Data URL prefix: data:${normalizedMimeType};base64,...`);
           
-          let completion;
+          let result;
           try {
-            completion = await openai.chat.completions.create({
-              model: "gpt-4o",
-              messages: [
-                {
-                  role: "system",
-                  content: "You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text."
-                },
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text",
-                      text: ocrPrompt
-                    },
-                    {
-                      type: "image_url",
-                      image_url: {
-                        url: imageDataUrl
-                      }
-                    }
-                  ]
+            // Gemini API format
+            const prompt = `You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text.
+
+${ocrPrompt}`;
+
+            result = await model.generateContent([
+              prompt,
+              {
+                inlineData: {
+                  data: base64File,
+                  mimeType: normalizedMimeType
                 }
-              ],
-              temperature: 0,
-              response_format: { type: "json_object" }
-            });
+              }
+            ]);
             
-            console.log(`✅ OpenAI API call successful`);
-            console.log(`   Response choices: ${completion.choices?.length || 0}`);
+            console.log(`✅ Gemini API call successful`);
           } catch (apiError) {
-            console.error(`❌ OpenAI API Error:`, apiError.message);
+            console.error(`❌ Gemini API Error:`, apiError.message);
             console.error(`   Error details:`, apiError);
             throw apiError;
           }

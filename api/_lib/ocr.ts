@@ -1,16 +1,15 @@
-// OpenAI OCR Helper for Document Extraction
+// Google Gemini OCR Helper for Document Extraction
 // Supports both POD and Invoice documents
 
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { PodOcrResult, InvoiceOcrResult } from '../../src/types/domain';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY environment variable');
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('Missing GEMINI_API_KEY environment variable');
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
 // Validate and normalize MIME type for images
 function normalizeImageMimeType(mimeType: string): string {
