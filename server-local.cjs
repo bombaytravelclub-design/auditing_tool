@@ -588,43 +588,60 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           }
 
           // Detect file type from buffer content (more reliable than extension/MIME type)
-          let rawMimeType = file.type || 'image/png';
-          
-          // Check buffer magic bytes to determine actual file type
+          // Check buffer magic bytes FIRST to determine actual file type
           const bufferStart = fileBuffer.slice(0, 12);
           const hexStart = bufferStart.toString('hex');
           const textStart = bufferStart.toString('ascii');
           
+          console.log(`🔍 File type detection:`);
+          console.log(`   File name: ${file.name}`);
+          console.log(`   Provided MIME type: ${file.type || 'none'}`);
+          console.log(`   Buffer start (hex): ${hexStart.substring(0, 32)}...`);
+          console.log(`   Buffer start (text): ${textStart.substring(0, 12)}...`);
+          
+          let rawMimeType = null;
+          let isPdf = false;
+          
           // Detect by magic bytes (most reliable - ignores wrong file extensions)
           if (textStart.startsWith('%PDF')) {
             rawMimeType = 'application/pdf';
+            isPdf = true;
+            console.log(`   ❌ Detected as PDF (starts with %PDF)`);
           } else if (hexStart.startsWith('ffd8')) {
             // JPEG: FF D8 FF
             rawMimeType = 'image/jpeg';
+            console.log(`   ✅ Detected as JPEG (FF D8)`);
           } else if (hexStart.startsWith('89504e470d0a1a0a')) {
             // PNG: 89 50 4E 47 0D 0A 1A 0A
             rawMimeType = 'image/png';
+            console.log(`   ✅ Detected as PNG (89 50 4E 47)`);
           } else if (hexStart.startsWith('474946')) {
             // GIF: 47 49 46 38 (GIF8)
             rawMimeType = 'image/gif';
+            console.log(`   ✅ Detected as GIF (47 49 46)`);
           } else if (hexStart.startsWith('52494646') && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
             // WebP: RIFF....WEBP
             rawMimeType = 'image/webp';
+            console.log(`   ✅ Detected as WebP (RIFF...WEBP)`);
+          } else {
+            // Unknown file type - check if provided MIME type is valid
+            const providedMimeType = file.type || '';
+            if (providedMimeType.startsWith('image/')) {
+              rawMimeType = providedMimeType;
+              console.log(`   ⚠️ Using provided MIME type: ${rawMimeType}`);
+            } else {
+              // Last resort: default to PNG but warn
+              rawMimeType = 'image/png';
+              console.log(`   ⚠️ WARNING: Could not detect file type, defaulting to image/png`);
+              console.log(`   ⚠️ This may fail if file is not actually an image!`);
+            }
           }
-          
-          const isPdf = rawMimeType === 'application/pdf';
           
           if (isPdf) {
             throw new Error('PDF files are not supported by OpenAI Vision API. Please convert PDF to image (PNG/JPEG) before uploading.');
           }
           
-          console.log(`🔍 File type detection:`);
-          console.log(`   File name: ${file.name}`);
-          console.log(`   Provided MIME type: ${file.type || 'none'}`);
-          console.log(`   Detected MIME type: ${rawMimeType}`);
-          console.log(`   Buffer start (hex): ${hexStart.substring(0, 16)}...`);
-          
-          // Normalize image MIME type
+          // Validate that we have a valid image MIME type
           const validImageTypes = {
             'image/png': 'image/png',
             'image/jpeg': 'image/jpeg',
@@ -633,7 +650,13 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
             'image/webp': 'image/webp',
           };
           
-          const normalizedMimeType = validImageTypes[rawMimeType.toLowerCase()] || 'image/png';
+          const normalizedMimeType = validImageTypes[rawMimeType?.toLowerCase()];
+          
+          if (!normalizedMimeType) {
+            throw new Error(`Invalid image format detected: ${rawMimeType}. Only PNG, JPEG, GIF, and WebP are supported.`);
+          }
+          
+          console.log(`   Final MIME type: ${normalizedMimeType}`);
           
           // Convert buffer to base64 data URL
           const base64File = fileBuffer.toString('base64');
