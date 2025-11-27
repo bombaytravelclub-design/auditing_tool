@@ -12,6 +12,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Check if supabase is available
+    if (!supabase) {
+      console.error('❌ Supabase client not initialized');
+      return res.status(500).json({
+        error: 'Server configuration error',
+        details: 'Supabase client not initialized. Please check environment variables.',
+      });
+    }
+
     // Parse query parameters
     const {
       category,
@@ -23,6 +32,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;
     const offset = (pageNum - 1) * limitNum;
+
+    console.log('📊 Fetching proformas with params:', { category, epodStatus, page: pageNum, limit: limitNum });
 
     // Build query with user details - proper nested join
     let query = supabase
@@ -85,12 +96,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Proforma query error:', error);
+      console.error('❌ Proforma query error:', error);
+      console.error('   Error code:', error.code);
+      console.error('   Error message:', error.message);
+      console.error('   Error details:', error.details);
+      console.error('   Error hint:', error.hint);
       return res.status(500).json({
         error: 'Failed to fetch proformas',
         details: error.message,
+        code: error.code,
       });
     }
+
+    console.log(`✅ Found ${count || 0} proformas, returning ${data?.length || 0} items`);
 
     // Format response
     const response: ProformaListResponse = {
@@ -102,10 +120,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json(response);
   } catch (error: any) {
-    console.error('Proformas API error:', error);
+    console.error('❌ Proformas API error:', error);
+    console.error('   Error type:', typeof error);
+    console.error('   Error message:', error?.message);
+    console.error('   Error stack:', error?.stack);
     return res.status(500).json({
       error: 'Internal server error',
-      details: error.message,
+      details: error?.message || String(error),
+      type: typeof error,
     });
   }
 }
