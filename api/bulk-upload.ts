@@ -389,6 +389,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           journey_id: matchedJourney?.id || null,
         });
 
+        console.log(`📝 Inserting bulk_job_item for ${file.name}:`, {
+          bulk_job_id: bulkJob.id,
+          file_name: file.name,
+          storage_path: fullStoragePath,
+          journey_id: matchedJourney?.id || null,
+          match_status: matchStatus,
+          has_ocr_data: !!ocrExtractedData,
+        });
+
         const { data: jobItem, error: itemError } = await supabase
           .from('bulk_job_items')
           .insert({
@@ -400,9 +409,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ocr_confidence: ocrResult.confidence || null,
             match_status: matchStatus, // Use correct enum value
             match_details: matchDetails, // Store match details in JSONB
-            status: 'pending_review', // Add status field (required by schema)
           })
-          .select()
+          .select('id, bulk_job_id, file_name, match_status, journey_id')
           .single();
 
         if (itemError) {
