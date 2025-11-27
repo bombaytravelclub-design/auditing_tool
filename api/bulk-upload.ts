@@ -246,16 +246,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (type.toLowerCase() === 'invoice') {
             console.log(`📄 Extracting invoice metadata for ${file.name}...`);
             ocrResult = await extractInvoiceMetadata(fileBuffer, detectedMimeType);
-            // Normalize invoice OCR result to match POD format for matching
-            ocrResult = {
-              journeyNumber: ocrResult.journeyNumber || ocrResult.invoiceDetails?.lrNo,
-              vehicleNumber: ocrResult.vehicleNumber || ocrResult.invoiceDetails?.vehicleNumber,
-              loadId: ocrResult.loadId || ocrResult.invoiceDetails?.lcuNo,
-              confidence: ocrResult.confidence || 0.8,
-              invoiceNumber: ocrResult.invoiceNumber || ocrResult.invoiceDetails?.invoiceNo,
-              charges: ocrResult.charges || ocrResult.chargeBreakup,
-              totalAmount: ocrResult.totalAmount || ocrResult.chargeBreakup?.totalPayableAmount,
-            };
+            // Ensure journeyNumber is extracted from nested structure if needed
+            if (!ocrResult.journeyNumber && ocrResult.invoiceDetails?.lrNo) {
+              ocrResult.journeyNumber = ocrResult.invoiceDetails.lrNo;
+            }
+            // Ensure loadId is extracted from nested structure if needed
+            if (!ocrResult.loadId && ocrResult.invoiceDetails?.lcuNo) {
+              ocrResult.loadId = ocrResult.invoiceDetails.lcuNo;
+            }
           } else {
             console.log(`📄 Extracting POD metadata for ${file.name}...`);
             ocrResult = await extractPodMetadata(fileBuffer, detectedMimeType);
@@ -267,6 +265,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             loadId: ocrResult.loadId,
             confidence: ocrResult.confidence,
             invoiceNumber: ocrResult.invoiceNumber,
+            hasInvoiceDetails: !!ocrResult.invoiceDetails,
+            invoiceDetailsLrNo: ocrResult.invoiceDetails?.lrNo,
           });
         } catch (ocrError: any) {
           console.error(`❌ OCR extraction failed for ${file.name}:`, ocrError);
@@ -293,11 +293,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Find matching journey using sophisticated matching logic
+        // Pass the full ocrResult so findMatchingJourney can check all possible field locations
         const matchedJourney = findMatchingJourney(ocrResult, allJourneys);
+
+        console.log(`🔍 Matching result for ${file.name}:`, {
+          matchedJourney: matchedJourney ? matchedJourney.id : null,
+          journeyNumber: ocrResult.journeyNumber,
+          loadId: ocrResult.loadId,
+          invoiceDetailsLrNo: ocrResult.invoiceDetails?.lrNo,
+        });
 
         // Determine match status
         const isMatched = !!matchedJourney;
-        const needsReview = !isMatched && (ocrResult.journeyNumber || ocrResult.loadId);
+        const needsReview = !isMatched && (ocrResult.journeyNumber || ocrResult.loadId || ocrResult.invoiceDetails?.lrNo || ocrResult.invoiceDetails?.lcuNo);
+        
+        console.log(`📊 Match status for ${file.name}:`, {
+          isMatched,
+          needsReview,
+          hasJourneyNumber: !!ocrResult.journeyNumber,
+          hasLoadId: !!ocrResult.loadId,
+        });
 
         // Prepare OCR extracted data for storage (match local server structure)
         const ocrExtractedData: any = {
