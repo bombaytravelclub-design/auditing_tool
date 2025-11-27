@@ -3,33 +3,49 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Get environment variables
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Lazy initialization to avoid module load errors
+let _supabaseClient: SupabaseClient | null = null;
 
-// Validate environment variables
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing Supabase environment variables:');
-  console.error('   SUPABASE_URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
-  console.error('   SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Set' : '✗ Missing');
-  throw new Error(
-    'Missing Supabase environment variables. ' +
-    'Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.'
-  );
-}
+function getSupabaseClient(): SupabaseClient {
+  if (_supabaseClient) {
+    return _supabaseClient;
+  }
 
-// Create Supabase client with service role key
-// This bypasses RLS and gives full access (needed for serverless functions)
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl,
-  supabaseKey,
-  {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Missing Supabase environment variables:');
+    console.error('   SUPABASE_URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
+    console.error('   SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Set' : '✗ Missing');
+    throw new Error(
+      'Missing Supabase environment variables. ' +
+      'Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.'
+    );
+  }
+
+  _supabaseClient = createClient(supabaseUrl, supabaseKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
-);
+  });
+
+  return _supabaseClient;
+}
+
+// Export Supabase client with lazy initialization
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    const value = (client as any)[prop];
+    // Bind functions to maintain 'this' context
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
 
 // Storage bucket names
 export const STORAGE_BUCKETS = {
