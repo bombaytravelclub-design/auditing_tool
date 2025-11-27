@@ -162,19 +162,99 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
       }
     }
 
-    // Transform charges array to match expected format
-    const charges = parsed.charges && Array.isArray(parsed.charges) 
-      ? parsed.charges 
-      : [];
+    // Extract LR Number with comprehensive fallback logic (matching local server)
+    const extractLRNumber = (parsed: any, fallbackLRNumber: string | null = null): string | undefined => {
+      let lrNumber: string | undefined = undefined;
+      
+      // NEW STRUCTURE: Check for nested invoiceDetails.lrNo first (priority)
+      if (parsed.invoiceDetails && parsed.invoiceDetails.lrNo) {
+        lrNumber = parsed.invoiceDetails.lrNo;
+        console.log(`🔍 Found LR Number in invoiceDetails.lrNo: "${lrNumber}"`);
+      }
+      // OLD STRUCTURE: Try standard field names (for backward compatibility)
+      else {
+        lrNumber = parsed.journeyNumber || 
+               parsed.journey_number || 
+               parsed.lrNumber || 
+               parsed.lr_number || 
+               parsed.lrNo ||
+               parsed.lr_no ||
+               parsed.tripId ||
+               parsed.trip_id ||
+               parsed.lrId ||
+               parsed.lr_id ||
+               undefined;
+        
+        // If not found, check all keys for LR-related fields (case-insensitive)
+        if (!lrNumber && parsed) {
+          const keys = Object.keys(parsed);
+          for (const key of keys) {
+            const lowerKey = key.toLowerCase();
+            // Check if key contains "lr" or "journey" or "trip"
+            if ((lowerKey.includes('lr') || lowerKey.includes('journey') || lowerKey.includes('trip')) 
+                && parsed[key] && typeof parsed[key] === 'string') {
+              // Check if value looks like an LR number (starts with LR or is numeric)
+              const value = String(parsed[key]).trim();
+              if (value.match(/^LR\d+/i) || value.match(/^\d{8,}/)) {
+                lrNumber = value;
+                console.log(`🔍 Found LR Number in field "${key}": "${value}"`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Fallback: Try to extract from raw text using regex patterns
+      if (!lrNumber && fallbackLRNumber) {
+        lrNumber = fallbackLRNumber;
+        console.log(`✅ Using fallback LR Number from raw text: "${lrNumber}"`);
+      } else if (!lrNumber) {
+        // Try regex patterns on originalContent
+        const lrPatterns = [
+          /LR\s*No[:\s]+(LR\d+)/i,
+          /LR\s*Number[:\s]+(LR\d+)/i,
+          /LR\s*No[:\s]+(\d{8,})/i,
+          /(LR\d{8,})/i,
+          /LR[:\s-]*(\d{8,})/i
+        ];
+        
+        for (const pattern of lrPatterns) {
+          const match = originalContent.match(pattern);
+          if (match) {
+            lrNumber = match[1].startsWith('LR') ? match[1] : `LR${match[1]}`;
+            console.log(`🔍 Found LR Number in raw text (fallback): "${lrNumber}"`);
+            break;
+          }
+        }
+      }
+      
+      return lrNumber;
+    };
+
+    // Extract charges from chargeBreakup or parsed.charges
+    const chargeBreakup = parsed.chargeBreakup || {};
+    const charges = [];
+    if (chargeBreakup.tollCharges) charges.push({ type: 'Toll Charges', amount: chargeBreakup.tollCharges });
+    if (chargeBreakup.unloadingCharges) charges.push({ type: 'Unloading Charges', amount: chargeBreakup.unloadingCharges });
+    if (chargeBreakup.otherAddOnCharges) charges.push({ type: 'Other Add-on Charges', amount: chargeBreakup.otherAddOnCharges });
+    if (chargeBreakup.sgst) charges.push({ type: 'SGST', amount: chargeBreakup.sgst });
+    if (chargeBreakup.cgst) charges.push({ type: 'CGST', amount: chargeBreakup.cgst });
+    
+    // Use chargeBreakup charges or fallback to parsed.charges
+    const finalCharges = charges.length > 0 ? charges : (parsed.charges && Array.isArray(parsed.charges) ? parsed.charges : []);
 
     return {
-      journeyNumber: parsed.journeyNumber || undefined,
-      vehicleNumber: parsed.vehicleNumber || undefined,
-      loadId: parsed.loadId || undefined,
-      charges: charges,
-      totalAmount: parsed.totalAmount || undefined,
+      journeyNumber: extractLRNumber(parsed, null),
+      vehicleNumber: parsed.vehicleNumber || parsed.vehicle_number || undefined,
+      loadId: parsed.loadId || parsed.load_id || undefined,
+      charges: finalCharges,
+      totalAmount: parsed.totalAmount || chargeBreakup.totalPayableAmount || undefined,
       confidence: parsed.confidence || 0.8,
       rawResponse: { content: originalContent, parsed },
+      chargeBreakup: chargeBreakup,
+      invoiceDetails: parsed.invoiceDetails || null,
+      materialDetails: parsed.materialDetails || null,
     };
   } catch (error: any) {
     console.error('POD OCR Error:', error);
@@ -350,6 +430,76 @@ Return the data in this JSON format:
       }
     }
 
+    // Extract LR Number with comprehensive fallback logic (matching local server)
+    const extractLRNumber = (parsed: any, fallbackLRNumber: string | null = null): string | undefined => {
+      let lrNumber: string | undefined = undefined;
+      
+      // NEW STRUCTURE: Check for nested invoiceDetails.lrNo first (priority)
+      if (parsed.invoiceDetails && parsed.invoiceDetails.lrNo) {
+        lrNumber = parsed.invoiceDetails.lrNo;
+        console.log(`🔍 Found LR Number in invoiceDetails.lrNo: "${lrNumber}"`);
+      }
+      // OLD STRUCTURE: Try standard field names (for backward compatibility)
+      else {
+        lrNumber = parsed.journeyNumber || 
+               parsed.journey_number || 
+               parsed.lrNumber || 
+               parsed.lr_number || 
+               parsed.lrNo ||
+               parsed.lr_no ||
+               parsed.tripId ||
+               parsed.trip_id ||
+               parsed.lrId ||
+               parsed.lr_id ||
+               undefined;
+        
+        // If not found, check all keys for LR-related fields (case-insensitive)
+        if (!lrNumber && parsed) {
+          const keys = Object.keys(parsed);
+          for (const key of keys) {
+            const lowerKey = key.toLowerCase();
+            // Check if key contains "lr" or "journey" or "trip"
+            if ((lowerKey.includes('lr') || lowerKey.includes('journey') || lowerKey.includes('trip')) 
+                && parsed[key] && typeof parsed[key] === 'string') {
+              // Check if value looks like an LR number (starts with LR or is numeric)
+              const value = String(parsed[key]).trim();
+              if (value.match(/^LR\d+/i) || value.match(/^\d{8,}/)) {
+                lrNumber = value;
+                console.log(`🔍 Found LR Number in field "${key}": "${value}"`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Fallback: Try to extract from raw text using regex patterns
+      if (!lrNumber && fallbackLRNumber) {
+        lrNumber = fallbackLRNumber;
+        console.log(`✅ Using fallback LR Number from raw text: "${lrNumber}"`);
+      } else if (!lrNumber) {
+        // Try regex patterns on originalContent
+        const lrPatterns = [
+          /LR\s*No[:\s]+(LR\d+)/i,
+          /LR\s*Number[:\s]+(LR\d+)/i,
+          /LR\s*No[:\s]+(\d{8,})/i,
+          /(LR\d{8,})/i,
+          /LR[:\s-]*(\d{8,})/i
+        ];
+        
+        for (const pattern of lrPatterns) {
+          const match = originalContent.match(pattern);
+          if (match) {
+            lrNumber = match[1].startsWith('LR') ? match[1] : `LR${match[1]}`;
+            console.log(`🔍 Found LR Number in raw text (fallback): "${lrNumber}"`);
+            break;
+          }
+        }
+      }
+      
+      return lrNumber;
+    };
+
     // Extract from nested structure
     const invoiceDetails = parsed.invoiceDetails || {};
     const chargeBreakup = parsed.chargeBreakup || {};
@@ -366,8 +516,8 @@ Return the data in this JSON format:
     return {
       invoiceNumber: invoiceDetails.invoiceNo || parsed.invoiceNumber || undefined,
       invoiceDate: invoiceDetails.invoiceDate || parsed.invoiceDate || undefined,
-      journeyNumber: invoiceDetails.lrNo || parsed.journeyNumber || undefined,
-      loadId: invoiceDetails.lcuNo || parsed.loadId || undefined,
+      journeyNumber: extractLRNumber(parsed, null), // Use comprehensive extraction
+      loadId: invoiceDetails.lcuNo || parsed.loadId || parsed.load_id || parsed.lcuNumber || parsed.lcuNo || undefined,
       baseFreight: chargeBreakup.baseFreight || parsed.baseFreight || undefined,
       totalAmount: chargeBreakup.totalPayableAmount || parsed.totalAmount || undefined,
       charges: charges.length > 0 ? charges : (parsed.charges || []),

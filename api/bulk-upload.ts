@@ -298,13 +298,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           continue;
         }
 
-        // Prepare OCR extracted data for storage
+        // Prepare OCR extracted data for storage (match local server structure)
         const ocrExtractedData: any = {
           journeyNumber: ocrResult.journeyNumber,
           vehicleNumber: ocrResult.vehicleNumber,
           loadId: ocrResult.loadId,
           confidence: ocrResult.confidence,
           rawResponse: ocrResult.rawResponse,
+          // Store full nested structures (matching local server)
+          invoiceDetails: ocrResult.invoiceDetails || null,
+          chargeBreakup: ocrResult.chargeBreakup || null,
+          materialDetails: ocrResult.materialDetails || null,
+          // Also store top-level fields for backward compatibility
+          invoiceNumber: ocrResult.invoiceNumber,
+          baseFreight: ocrResult.baseFreight,
+          totalAmount: ocrResult.totalAmount,
+          charges: ocrResult.charges || [],
         };
 
         // Determine match status (must match enum: 'pending_review', 'matched', 'mismatch', 'accepted', 'rejected', 'skipped')
