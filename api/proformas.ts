@@ -36,6 +36,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Validate environment variables first
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing Supabase environment variables:');
+      console.error('   SUPABASE_URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
+      console.error('   SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Set (length: ' + supabaseKey.length + ')' : '✗ Missing');
+      return res.status(500).json({
+        error: 'Server configuration error',
+        details: 'Missing Supabase environment variables. Please check Vercel environment variables.',
+      });
+    }
+    
+    // Validate key format (service_role keys are long JWT tokens)
+    if (!supabaseKey.startsWith('eyJ')) {
+      console.error('❌ Invalid Supabase key format. Service role keys should start with "eyJ"');
+      console.error('   Key starts with:', supabaseKey.substring(0, 10));
+      return res.status(500).json({
+        error: 'Invalid API key format',
+        details: 'SUPABASE_SERVICE_ROLE_KEY appears to be invalid. Make sure you\'re using the service_role key, not the anon key.',
+      });
+    }
+    
     // Get Supabase client
     let supabaseClient;
     try {
