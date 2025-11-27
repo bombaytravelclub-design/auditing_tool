@@ -158,21 +158,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Decode base64 file data
         const fileBuffer = Buffer.from(file.data, 'base64');
         
-        // Detect file type from buffer or use provided type
+        // Detect file type from buffer content (more reliable than extension/MIME type)
         let detectedMimeType = file.type;
-        if (!detectedMimeType || detectedMimeType === 'application/octet-stream') {
-          // Try to detect from buffer
-          const header = fileBuffer.slice(0, 4).toString();
-          if (header === '%PDF') {
-            detectedMimeType = 'application/pdf';
-          } else if (fileBuffer.slice(0, 2).toString('hex') === 'ffd8') {
-            detectedMimeType = 'image/jpeg';
-          } else if (fileBuffer.slice(0, 8).toString('hex') === '89504e470d0a1a0a') {
-            detectedMimeType = 'image/png';
-          } else {
-            detectedMimeType = 'image/png'; // Default fallback
-          }
+        
+        // Check buffer magic bytes to determine actual file type
+        const bufferStart = fileBuffer.slice(0, 12);
+        const hexStart = bufferStart.toString('hex');
+        const textStart = bufferStart.toString('ascii');
+        
+        // Detect by magic bytes (most reliable)
+        if (textStart.startsWith('%PDF')) {
+          detectedMimeType = 'application/pdf';
+        } else if (hexStart.startsWith('ffd8')) {
+          // JPEG: FF D8 FF
+          detectedMimeType = 'image/jpeg';
+        } else if (hexStart.startsWith('89504e470d0a1a0a')) {
+          // PNG: 89 50 4E 47 0D 0A 1A 0A
+          detectedMimeType = 'image/png';
+        } else if (hexStart.startsWith('474946')) {
+          // GIF: 47 49 46 38 (GIF8)
+          detectedMimeType = 'image/gif';
+        } else if (hexStart.startsWith('52494646') && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
+          // WebP: RIFF....WEBP
+          detectedMimeType = 'image/webp';
+        } else if (!detectedMimeType || detectedMimeType === 'application/octet-stream') {
+          // If we can't detect and no MIME type provided, default to PNG
+          detectedMimeType = 'image/png';
         }
+        
+        console.log(`📄 File detection for ${file.name}:`);
+        console.log(`   Provided MIME type: ${file.type || 'none'}`);
+        console.log(`   Detected MIME type: ${detectedMimeType}`);
+        console.log(`   Buffer start (hex): ${hexStart.substring(0, 16)}...`);
         
         console.log(`📄 File: ${file.name}, Detected MIME type: ${detectedMimeType}`);
         

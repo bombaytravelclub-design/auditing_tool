@@ -587,13 +587,42 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 }`;
           }
 
-          // Detect file type and handle PDFs vs images
-          const rawMimeType = file.type || 'application/pdf';
-          const isPdf = rawMimeType === 'application/pdf' || fileBuffer.slice(0, 4).toString() === '%PDF';
+          // Detect file type from buffer content (more reliable than extension/MIME type)
+          let rawMimeType = file.type || 'image/png';
+          
+          // Check buffer magic bytes to determine actual file type
+          const bufferStart = fileBuffer.slice(0, 12);
+          const hexStart = bufferStart.toString('hex');
+          const textStart = bufferStart.toString('ascii');
+          
+          // Detect by magic bytes (most reliable - ignores wrong file extensions)
+          if (textStart.startsWith('%PDF')) {
+            rawMimeType = 'application/pdf';
+          } else if (hexStart.startsWith('ffd8')) {
+            // JPEG: FF D8 FF
+            rawMimeType = 'image/jpeg';
+          } else if (hexStart.startsWith('89504e470d0a1a0a')) {
+            // PNG: 89 50 4E 47 0D 0A 1A 0A
+            rawMimeType = 'image/png';
+          } else if (hexStart.startsWith('474946')) {
+            // GIF: 47 49 46 38 (GIF8)
+            rawMimeType = 'image/gif';
+          } else if (hexStart.startsWith('52494646') && bufferStart.slice(8, 12).toString('ascii') === 'WEBP') {
+            // WebP: RIFF....WEBP
+            rawMimeType = 'image/webp';
+          }
+          
+          const isPdf = rawMimeType === 'application/pdf';
           
           if (isPdf) {
             throw new Error('PDF files are not supported by OpenAI Vision API. Please convert PDF to image (PNG/JPEG) before uploading.');
           }
+          
+          console.log(`🔍 File type detection:`);
+          console.log(`   File name: ${file.name}`);
+          console.log(`   Provided MIME type: ${file.type || 'none'}`);
+          console.log(`   Detected MIME type: ${rawMimeType}`);
+          console.log(`   Buffer start (hex): ${hexStart.substring(0, 16)}...`);
           
           // Normalize image MIME type
           const validImageTypes = {
