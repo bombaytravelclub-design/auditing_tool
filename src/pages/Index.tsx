@@ -28,7 +28,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [selectedTransporter, setSelectedTransporter] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<"all" | "Closed" | "Disputed" | "Open Trips">("Closed");
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("ePOD Pending");
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("ePOD Approved");
   const [selectedJourneys, setSelectedJourneys] = useState<string[]>([]);
   const [detailsJourney, setDetailsJourney] = useState<Journey | null>(null);
   const [dateRange, setDateRange] = useState<{ from: string; to: string } | null>(null);
@@ -138,7 +138,7 @@ const Index = () => {
     setSelectedCategory(category);
     // Set appropriate default sub-category
     if (category === "Closed") {
-      setSelectedSubCategory("ePOD Pending");
+      setSelectedSubCategory("ePOD Approved");
     } else if (category === "Disputed") {
       setSelectedSubCategory("Rejected");
     } else {

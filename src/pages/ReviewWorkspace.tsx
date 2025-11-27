@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useParams, useNavigate } from "react-router-dom";
-import { FileText, ChevronRight, Check, X, Eye, MessageSquare, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { FileText, ChevronRight, Check, X, Eye, MessageSquare, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { mockBulkJobs, mockJourneys, Journey } from "@/lib/mockData";
 import { JourneyDetailsDrawer } from "@/components/JourneyDetailsDrawer";
 import { PODSidePanel } from "@/components/PODSidePanel";
@@ -64,6 +64,7 @@ const ReviewWorkspace = () => {
   const [chargeActions, setChargeActions] = useState<Record<string, { status: 'accepted' | 'rejected' | 'pending', comment?: string }>>({});
   const [commentingChargeId, setCommentingChargeId] = useState<string | null>(null);
   const [tempComment, setTempComment] = useState("");
+  const [showOcrPayload, setShowOcrPayload] = useState(false);
   
   // Real data from API
   const [job, setJob] = useState<any>(null);
@@ -209,6 +210,12 @@ const ReviewWorkspace = () => {
   const needsReviewData = allReviewData.filter((item) => {
     const hasJourney = item.journey_id || item.journeyId;
     return !hasJourney || hasJourney === null || hasJourney === undefined; // No journey matched = Needs Review tab
+  });
+
+  // Closed: Items where journey epod_status is 'approved'
+  // CRITERIA: epod_status === 'approved' = Closed tab
+  const closedData = allReviewData.filter((item) => {
+    return item.epod_status === 'approved';
   });
 
   const handleActionClick = (item: any) => {
@@ -907,19 +914,42 @@ const ReviewWorkspace = () => {
                 </Table>
               </div>
 
+              {/* OCR Payload Section */}
+              <div className="rounded-lg border bg-card">
+                <button
+                  onClick={() => setShowOcrPayload(!showOcrPayload)}
+                  className="w-full p-4 border-b flex items-center justify-between hover:bg-muted/30 transition-colors"
+                >
+                  <h3 className="text-sm font-medium">OCR Extracted Data</h3>
+                  {showOcrPayload ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+                {showOcrPayload && (
+                  <div className="p-4">
+                    <div className="bg-muted/30 rounded-lg p-4 overflow-auto max-h-[400px]">
+                      <pre className="text-xs font-mono whitespace-pre-wrap break-words">
+                        {JSON.stringify(selectedVarianceData?.ocrData || selectedVarianceData?.ocr_extracted_data || {}, null, 2)}
+                      </pre>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This is the raw OCR data extracted from the document. Use this to debug extraction issues.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Accept/Reject Actions - Only show if variance > 0 and not already actioned */}
               {!reviewActions[selectedVarianceData?.loadId] && (
                 <div className="rounded-lg border border-warning/20 bg-warning/5 p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
                       <h4 className="font-medium text-sm mb-1">Action Required</h4>
-                      {selectedVarianceData?.variance !== null && selectedVarianceData?.variance !== undefined && selectedVarianceData.variance !== 0 ? (
+                      {selectedVarianceData?.variance !== null && selectedVarianceData?.variance !== undefined && selectedVarianceData.variance !== 0 && (
                         <p className="text-sm text-muted-foreground">
                           Variance of ₹{Math.abs(selectedVarianceData.variance).toLocaleString("en-IN")} detected. Please review and accept or reject.
-                        </p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          All charges match. You can accept this POD.
                         </p>
                       )}
                     </div>

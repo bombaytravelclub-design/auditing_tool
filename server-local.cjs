@@ -152,7 +152,7 @@ app.post('/api/bulk-upload', async (req, res) => {
     console.log(`   Environment check:`, {
       supabaseUrl: process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing',
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing',
-      geminiKey: process.env.GEMINI_API_KEY ? '✅ Set' : '❌ Missing'
+      openaiKey: process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Missing'
     });
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
@@ -228,11 +228,15 @@ app.post('/api/bulk-upload', async (req, res) => {
       });
     }
     
+    // IMPORTANT: Fetch ALL journeys from database for matching, not just selected ones
+    // This allows OCR to match any journey by LR number, even if user didn't select it
+    // We still validate selected journeyIds, but match against all journeys
+    console.log(`🔍 Fetching ALL journeys from database for matching (not just selected ones)...`);
+    
     // Note: journey_number IS the LR Number in this system (lr_number column doesn't exist)
     const { data: journeysData, error: journeysError } = await supabase
       .from('journeys')
-      .select('id, journey_number, load_id, vehicle_number')
-      .in('id', validJourneyIds);
+      .select('id, journey_number, load_id, vehicle_number, epod_status');
     
     if (journeysError) {
       console.error('❌ Error fetching journeys:', JSON.stringify(journeysError, null, 2));
@@ -248,9 +252,28 @@ app.post('/api/bulk-upload', async (req, res) => {
     }
     
     const journeys = journeysData || [];
-    console.log(`✅ Fetched ${journeys.length} journeys`);
+    console.log(`✅ Fetched ${journeys.length} journeys from database (ALL journeys, not just selected)`);
+    
+    // Log available LR numbers for debugging
+    const availableLRs = journeys.map(j => j.journey_number).filter(Boolean);
+    console.log(`📋 Available LR numbers in database: ${availableLRs.length} total`);
+    if (availableLRs.length > 0) {
+      console.log(`   Sample LR numbers:`, availableLRs.slice(0, 20));
+    }
+    
+    // CRITICAL: Ensure journeys is accessible in file processing loop
+    // Store in a way that's guaranteed to be accessible
+    if (!journeys || journeys.length === 0) {
+      console.error(`❌ CRITICAL: No journeys fetched! Matching will fail!`);
+      return res.status(500).json({ 
+        error: 'No journeys available in database', 
+        details: 'Cannot perform matching without journeys'
+      });
+    }
+    
     if (journeys.length > 0) {
-      journeys.forEach((j, idx) => {
+      console.log(`   Sample journeys (first 5):`);
+      journeys.slice(0, 5).forEach((j, idx) => {
         console.log(`   Journey ${idx + 1}:`, {
           id: j.id,
           journey_number: j.journey_number, // This IS the LR Number
@@ -259,8 +282,7 @@ app.post('/api/bulk-upload', async (req, res) => {
         });
       });
     } else {
-      console.error(`❌ CRITICAL: No journeys found!`);
-      console.error(`   Journey IDs sent: ${JSON.stringify(journeyIds)}`);
+      console.error(`❌ CRITICAL: No journeys found in database!`);
       console.error(`   This means matching will fail for all files!`);
     }
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -278,10 +300,10 @@ app.post('/api/bulk-upload', async (req, res) => {
       const journeyIdsForProforma = journeys.map(j => j.id);
       console.log(`Fetching proformas for ${journeyIdsForProforma.length} journeys`);
       
+      // Fetch ALL proformas (not just for selected journeys) so we can match any journey
       const { data: proformasData, error: proformasError } = await supabase
         .from('proformas')
-        .select('id, journey_id, base_freight, toll_charge, unloading_charge, detention_charge, other_charges, gst_amount, total_amount')
-        .in('journey_id', journeyIdsForProforma);
+        .select('id, journey_id, base_freight, toll_charge, unloading_charge, detention_charge, other_charges, gst_amount, total_amount');
       
       if (proformasError) {
         console.error('⚠️ Error fetching proformas:', proformasError);
@@ -408,7 +430,7 @@ app.post('/api/bulk-upload', async (req, res) => {
           ? supabase.storage.from('documents').getPublicUrl(storagePath)
           : { publicUrl: null };
 
-        // Real OCR extraction using Gemini
+        // Real OCR extraction using OpenAI
         console.log(`🔍 Running OCR on ${file.name}...`);
         let ocrResult;
         let matchedJourney = null;
@@ -418,10 +440,11 @@ app.post('/api/bulk-upload', async (req, res) => {
         let ocrError = null; // Initialize ocrError variable
 
         try {
-          // Use Gemini directly for OCR (CommonJS compatible)
-          const { GoogleGenerativeAI } = require('@google/generative-ai');
-          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-          const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+          // Use OpenAI for OCR (CommonJS compatible)
+          const OpenAI = require('openai');
+          const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
+          });
 
           // Prepare OCR prompt based on document type
           // PRIORITY: Extract LR Number (journeyNumber) - it's the unique key for matching
@@ -530,28 +553,66 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 }`;
           }
 
-          // Convert buffer to base64
+          // Convert buffer to base64 data URL
           const base64File = fileBuffer.toString('base64');
+          const mimeType = file.type || 'application/pdf';
+          const imageDataUrl = `data:${mimeType};base64,${base64File}`;
           
-          // Call Gemini with vision
-          const result = await model.generateContent([
-            ocrPrompt,
-            {
-              inlineData: {
-                data: base64File,
-                mimeType: file.type || 'application/pdf',
-              },
-            },
-          ]);
+          // Call OpenAI Vision API (gpt-4o supports vision)
+          console.log(`📤 Calling OpenAI API for file: ${file.name}`);
+          console.log(`   File type: ${mimeType}`);
+          console.log(`   Base64 length: ${base64File.length}`);
+          
+          let completion;
+          try {
+            completion = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text."
+                },
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "text",
+                      text: ocrPrompt
+                    },
+                    {
+                      type: "image_url",
+                      image_url: {
+                        url: imageDataUrl
+                      }
+                    }
+                  ]
+                }
+              ],
+              temperature: 0,
+              response_format: { type: "json_object" }
+            });
+            
+            console.log(`✅ OpenAI API call successful`);
+            console.log(`   Response choices: ${completion.choices?.length || 0}`);
+          } catch (apiError) {
+            console.error(`❌ OpenAI API Error:`, apiError.message);
+            console.error(`   Error details:`, apiError);
+            throw apiError;
+          }
 
-          const response = await result.response;
-          let content = response.text().trim();
+          let content = completion.choices[0]?.message?.content || '{}';
           const originalContent = content; // Keep original for fallback extraction
           
-          console.log(`📄 Raw Gemini OCR Response (first 1000 chars):`, content.substring(0, 1000));
+          console.log(`📄 Raw OpenAI OCR Response (first 1000 chars):`, content.substring(0, 1000));
+          console.log(`📄 Full response length: ${content.length} chars`);
+          
+          if (!content || content === '{}' || content.trim().length === 0) {
+            console.error(`❌ Empty response from OpenAI API`);
+            throw new Error('Empty response from OpenAI API');
+          }
           
           // FALLBACK: Try to extract LR number from raw text before parsing JSON
-          // Sometimes Gemini mentions LR numbers in explanations or text before JSON
+          // Sometimes OpenAI mentions LR numbers in explanations or text before JSON
           let fallbackLRNumber = null;
           const lrPatterns = [
             /LR\s*No[:\s]+(LR\d+)/i,
@@ -691,21 +752,37 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
               totalAmount: chargeBreakup.totalPayableAmount || parsed.totalAmount || parsed.total_amount || null,
               charges: charges.length > 0 ? charges : (parsed.charges || []), // Use new structure charges or fallback to old
               confidence: parsed.confidence || 0.8,
-              rawResponse: { content: response.text(), parsed },
+              rawResponse: { content: originalContent, parsed },
               // Store full nested structure for reference
               invoiceDetails: invoiceDetails,
               chargeBreakup: chargeBreakup,
               materialDetails: materialDetails
             };
           } else {
+            // POD documents - extract charges similar to invoices
+            const chargeBreakup = parsed.chargeBreakup || {};
+            const charges = [];
+            
+            // Build charges array from chargeBreakup if available
+            if (chargeBreakup.tollCharges) charges.push({ type: 'Toll Charges', amount: chargeBreakup.tollCharges });
+            if (chargeBreakup.unloadingCharges) charges.push({ type: 'Unloading Charges', amount: chargeBreakup.unloadingCharges });
+            if (chargeBreakup.otherAddOnCharges) charges.push({ type: 'Other Add-on Charges', amount: chargeBreakup.otherAddOnCharges });
+            if (chargeBreakup.sgst) charges.push({ type: 'SGST', amount: chargeBreakup.sgst });
+            if (chargeBreakup.cgst) charges.push({ type: 'CGST', amount: chargeBreakup.cgst });
+            
             ocrResult = {
               journeyNumber: extractLRNumber(parsed, fallbackLRNumber), // LR Number - PRIMARY MATCHING FIELD
               vehicleNumber: parsed.vehicleNumber || parsed.vehicle_number || null,
               loadId: parsed.loadId || parsed.load_id || null,
-              charges: parsed.charges || [],
-              totalAmount: parsed.totalAmount || parsed.total_amount || null,
+              baseFreight: chargeBreakup.baseFreight || parsed.baseFreight || parsed.base_freight || null,
+              totalAmount: chargeBreakup.totalPayableAmount || parsed.totalAmount || parsed.total_amount || null,
+              charges: charges.length > 0 ? charges : (parsed.charges || []), // Use chargeBreakup charges or fallback to parsed.charges
               confidence: parsed.confidence || 0.8,
-              rawResponse: { content: response.text(), parsed }
+              rawResponse: { content: originalContent, parsed },
+              // Store nested structures for POD too
+              chargeBreakup: chargeBreakup,
+              invoiceDetails: parsed.invoiceDetails || null,
+              materialDetails: parsed.materialDetails || null
             };
           }
           
@@ -764,14 +841,14 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
             console.error('📄 Available fields in parsed JSON:');
             console.error('   ', Object.keys(parsed || {}).join(', ') || 'None');
             console.error('');
-            console.error('📄 Raw Gemini response (first 500 chars):');
+            console.error('📄 Raw OpenAI response (first 500 chars):');
             console.error('   ', originalContent.substring(0, 500));
             console.error('');
             console.error('💡 Possible reasons:');
             console.error('   1. PDF image quality too low for OCR');
             console.error('   2. LR Number not visible in the document');
             console.error('   3. LR Number in unexpected format/location');
-            console.error('   4. Gemini API not reading the PDF correctly');
+            console.error('   4. OpenAI API not reading the PDF correctly');
             console.error('');
             console.error('🔧 This file will be marked as "needs_review" for manual processing.');
             console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -807,26 +884,49 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           // Find Matching Journey Function (match on LR Number and LCU Number)
           // ============================================================================
           const findMatchingJourney = (ocrData, journeysList) => {
+            console.log(`🔍 findMatchingJourney called:`);
+            console.log(`   ocrData type: ${typeof ocrData}`);
+            console.log(`   ocrData keys:`, ocrData ? Object.keys(ocrData) : 'null');
+            console.log(`   journeysList type: ${typeof journeysList}`);
+            console.log(`   journeysList is array: ${Array.isArray(journeysList)}`);
+            console.log(`   journeysList.length: ${journeysList?.length || 0}`);
+            
             if (!ocrData || !journeysList || journeysList.length === 0) {
               console.log(`   ❌ Cannot match: OCR data or journeys list is empty`);
+              console.log(`      ocrData: ${ocrData ? 'exists' : 'null'}`);
+              console.log(`      journeysList: ${journeysList ? 'exists' : 'null'}`);
+              console.log(`      journeysList.length: ${journeysList?.length || 0}`);
               return null;
             }
             
             // Extract LR and LCU from OCR (try multiple field names)
-            const ocrLR = normalizeLR(ocrData.journeyNumber || ocrData.invoiceDetails?.lrNo || ocrData.lrNo || ocrData.lr_number);
-            const ocrLoad = normalizeLR(ocrData.loadId || ocrData.invoiceDetails?.lcuNo || ocrData.lcuNo || ocrData.lcu_no);
+            const ocrLRRaw = ocrData.journeyNumber || ocrData.invoiceDetails?.lrNo || ocrData.lrNo || ocrData.lr_number;
+            const ocrLR = normalizeLR(ocrLRRaw);
+            const ocrLoadRaw = ocrData.loadId || ocrData.invoiceDetails?.lcuNo || ocrData.lcuNo || ocrData.lcu_no;
+            const ocrLoad = normalizeLR(ocrLoadRaw);
             
             console.log(`🔍 Finding matching journey:`);
-            console.log(`   OCR LR (raw): "${ocrData.journeyNumber || ocrData.invoiceDetails?.lrNo || ocrData.lrNo}"`);
+            console.log(`   OCR LR (raw): "${ocrLRRaw}"`);
             console.log(`   OCR LR (normalized): "${ocrLR}"`);
-            console.log(`   OCR Load ID/LCU (raw): "${ocrData.loadId || ocrData.invoiceDetails?.lcuNo || ocrData.lcuNo}"`);
+            console.log(`   OCR Load ID/LCU (raw): "${ocrLoadRaw}"`);
             console.log(`   OCR Load ID/LCU (normalized): "${ocrLoad}"`);
             console.log(`   Available journeys: ${journeysList.length}`);
             
+            if (!ocrLR || ocrLR === '') {
+              console.log(`   ⚠️ WARNING: OCR LR is empty after normalization!`);
+              console.log(`      Raw value was: "${ocrLRRaw}"`);
+            }
+            
             // First try: Match on journey_number (which IS the LR Number in this system)
+            console.log(`   🔍 Comparing OCR LR "${ocrLR}" against ${journeysList.length} journeys...`);
+            let comparisonCount = 0;
             for (const journey of journeysList) {
               if (journey.journey_number) {
                 const journeyLR = normalizeLR(journey.journey_number);
+                comparisonCount++;
+                if (comparisonCount <= 5) {
+                  console.log(`   [${comparisonCount}] Comparing: OCR="${ocrLR}" vs DB="${journey.journey_number}" (normalized="${journeyLR}") → ${journeyLR === ocrLR ? '✅ MATCH!' : '❌ No match'}`);
+                }
                 if (journeyLR === ocrLR) {
                   console.log(`   ✅✅✅ EXACT MATCH FOUND BY journey_number! ✅✅✅`);
                   console.log(`      OCR LR: "${ocrLR}"`);
@@ -835,6 +935,9 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
                   return journey;
                 }
               }
+            }
+            if (comparisonCount > 5) {
+              console.log(`   ... (compared ${comparisonCount} total journeys)`);
             }
             
             // Fallback: Match on Load ID/LCU
@@ -851,8 +954,12 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
             }
             
             console.log(`   ❌ NO MATCH FOUND`);
-            console.log(`   Available journey_number (LR) values:`, journeysList.map(j => j.journey_number).filter(Boolean));
-            console.log(`   Available load_id (LCU) values:`, journeysList.map(j => j.load_id).filter(Boolean));
+            const availableLRs = journeysList.map(j => j.journey_number).filter(Boolean);
+            const availableLCUs = journeysList.map(j => j.load_id).filter(Boolean);
+            console.log(`   Available journey_number (LR) values (${availableLRs.length}):`, availableLRs.slice(0, 20));
+            console.log(`   Available load_id (LCU) values (${availableLCUs.length}):`, availableLCUs.slice(0, 20));
+            console.log(`   🔍 Debug: OCR LR normalized="${ocrLR}", Looking for exact match`);
+            console.log(`   🔍 Debug: Sample DB LR normalized values:`, availableLRs.slice(0, 5).map(lr => normalizeLR(lr)));
             return null;
           };
 
@@ -865,20 +972,53 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           console.log('🔍 MATCHING PROCESS');
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           
+          // CRITICAL DEBUG: Check journeys array availability
+          console.log(`📋 Journeys array check:`);
+          console.log(`   journeys variable exists: ${typeof journeys !== 'undefined'}`);
+          console.log(`   journeys is array: ${Array.isArray(journeys)}`);
+          console.log(`   journeys.length: ${journeys?.length || 0}`);
+          if (journeys && journeys.length > 0) {
+            console.log(`   First journey sample:`, {
+              id: journeys[0].id,
+              journey_number: journeys[0].journey_number,
+              load_id: journeys[0].load_id
+            });
+            console.log(`   All journey_numbers:`, journeys.slice(0, 10).map(j => j.journey_number).filter(Boolean));
+          }
+          
           if (!ocrResult.journeyNumber) {
             console.log(`❌ No LR Number extracted from OCR - cannot match`);
+            console.log(`   ocrResult keys:`, Object.keys(ocrResult));
+            console.log(`   ocrResult.journeyNumber:`, ocrResult.journeyNumber);
+            console.log(`   ocrResult.invoiceDetails:`, ocrResult.invoiceDetails);
             matchDetails = ['No LR Number found in OCR extraction'];
             matchedJourney = null;
             matchScore = 0;
             isMatched = false;
           } else if (!journeys || journeys.length === 0) {
             console.log(`❌ No journeys loaded - cannot match`);
+            console.log(`   journeys variable:`, journeys);
+            console.log(`   journeys type:`, typeof journeys);
             matchDetails = ['No journeys available for matching'];
             matchedJourney = null;
             matchScore = 0;
             isMatched = false;
           } else {
             // Use the helper function
+            console.log(`📋 About to call findMatchingJourney:`);
+            console.log(`   ocrResult.journeyNumber: "${ocrResult.journeyNumber}"`);
+            console.log(`   ocrResult.invoiceDetails?.lrNo: "${ocrResult.invoiceDetails?.lrNo}"`);
+            console.log(`   ocrResult.loadId: "${ocrResult.loadId}"`);
+            console.log(`   ocrResult.invoiceDetails?.lcuNo: "${ocrResult.invoiceDetails?.lcuNo}"`);
+            console.log(`   journeys.length: ${journeys.length}`);
+            if (journeys.length > 0) {
+              console.log(`   Sample journey:`, { 
+                id: journeys[0].id, 
+                journey_number: journeys[0].journey_number,
+                load_id: journeys[0].load_id
+              });
+            }
+            
             matchedJourney = findMatchingJourney(ocrResult, journeys);
             
             if (matchedJourney) {
@@ -891,6 +1031,10 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
               matchScore = 0;
               isMatched = false;
               console.log(`❌ Match Result: No journey matched`);
+              console.log(`   OCR extracted journeyNumber: "${ocrResult.journeyNumber}"`);
+              console.log(`   OCR extracted invoiceDetails.lrNo: "${ocrResult.invoiceDetails?.lrNo}"`);
+              console.log(`   OCR extracted loadId: "${ocrResult.loadId}"`);
+              console.log(`   OCR extracted invoiceDetails.lcuNo: "${ocrResult.invoiceDetails?.lcuNo}"`);
             }
           }
           
@@ -914,61 +1058,68 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 
         } catch (ocrErr) {
           ocrError = ocrErr; // Store error in outer scope variable
-          console.error(`❌ OCR error for ${file.name}:`, ocrError);
-          // Fallback: use first journey if OCR fails
-          matchedJourney = journeys[0] || null;
+          console.error(`❌ OCR error for ${file.name}:`, ocrErr.message);
+          console.error(`   Error stack:`, ocrErr.stack);
+          console.error(`   Full error:`, ocrErr);
+          // Don't use fallback journey - set to null so it's marked as needs_review
+          matchedJourney = null;
           ocrResult = {
-            vehicleNumber: matchedJourney?.vehicle_number || 'Unknown',
-            loadId: matchedJourney?.load_id || 'Unknown',
-            journeyNumber: matchedJourney?.journey_number || 'Unknown',
+            journeyNumber: null,
+            vehicleNumber: null,
+            loadId: null,
+            invoiceNumber: null,
+            baseFreight: null,
+            totalAmount: null,
+            charges: [],
             confidence: 0,
-            rawResponse: { error: ocrError.message }
+            rawResponse: { 
+              error: ocrErr.message || 'OCR extraction failed',
+              stack: ocrErr.stack,
+              details: ocrErr.toString()
+            }
           };
           matchScore = 0;
           isMatched = false;
         }
 
-        // For invoices, compare charges with proforma
+        // For invoices AND PODs, compare charges with proforma
         let chargeVariances = null;
         let proformaData = null;
         
-        if (type.toLowerCase() === 'invoice' && matchedJourney) {
-          // Check if proforma exists
-          if (matchedJourney.proformas && matchedJourney.proformas.length > 0) {
-            proformaData = matchedJourney.proformas[0];
-            
-            // Calculate charge variances
-            const invoiceBaseFreight = ocrResult.baseFreight || 0;
-            const invoiceTotal = ocrResult.totalAmount || 0;
+        if (matchedJourney) {
+          // Check if proforma exists (use the proformaByJourneyId map)
+          proformaData = proformaByJourneyId.get(matchedJourney.id) || null;
+          
+          if (proformaData) {
+            // Calculate charge variances for both invoices and PODs
+            const documentBaseFreight = ocrResult.baseFreight || 0;
+            const documentTotal = ocrResult.totalAmount || 0;
             const proformaBaseFreight = proformaData.base_freight || 0;
             const proformaTotal = proformaData.total_amount || 0;
             
             chargeVariances = {
-              baseFreight: invoiceBaseFreight - proformaBaseFreight,
+              baseFreight: documentBaseFreight - proformaBaseFreight,
               tollCharge: (ocrResult.charges?.find(c => c.type?.toLowerCase().includes('toll'))?.amount || 0) - (proformaData.toll_charge || 0),
               unloadingCharge: (ocrResult.charges?.find(c => c.type?.toLowerCase().includes('unload'))?.amount || 0) - (proformaData.unloading_charge || 0),
               detentionCharge: (ocrResult.charges?.find(c => c.type?.toLowerCase().includes('detention'))?.amount || 0) - (proformaData.detention_charge || 0),
               otherCharges: (ocrResult.charges?.find(c => c.type?.toLowerCase().includes('other'))?.amount || 0) - (proformaData.other_charges || 0),
               gstAmount: (ocrResult.charges?.find(c => c.type?.toLowerCase().includes('gst'))?.amount || 0) - (proformaData.gst_amount || 0),
-              totalAmount: invoiceTotal - proformaTotal
+              totalAmount: documentTotal - proformaTotal
             };
             
             console.log(`💰 Charge variances:`, chargeVariances);
             
-          // Note: Charge variance does NOT change match status
-          // If journey matched (LR number found), it stays matched
-          // Variance is shown in UI but doesn't affect tab placement
-          const hasVariance = Math.abs(chargeVariances.totalAmount) > 0.01 || Math.abs(chargeVariances.baseFreight) > 0.01;
-          if (hasVariance) {
-            matchDetails.push(`Charge variance detected: ₹${chargeVariances.totalAmount.toFixed(2)}`);
-          }
+            // Note: Charge variance does NOT change match status
+            // If journey matched (LR number found), it stays matched
+            // Variance is shown in UI but doesn't affect tab placement
+            const hasVariance = Math.abs(chargeVariances.totalAmount) > 0.01 || Math.abs(chargeVariances.baseFreight) > 0.01;
+            if (hasVariance) {
+              matchDetails.push(`Charge variance detected: ₹${chargeVariances.totalAmount.toFixed(2)}`);
+            }
           } else {
             // Journey matched but no proforma/contract found
             console.log(`⚠️ Journey matched (LR: ${ocrResult.journeyNumber}) but no proforma found`);
             console.log(`   This means journey exists but no contract to compare`);
-            console.log(`   Setting status to 'mismatch' (needs review)`);
-            // Keep isMatched = true (journey was found), but status will be 'mismatch' for review
-            // Don't set isMatched = false here - journey matching is independent from proforma
           }
         }
 
@@ -1272,7 +1423,28 @@ app.get('/api/bulk-jobs/:jobId', async (req, res) => {
 
     // Transform items with proper joins
     const transformedItems = await Promise.all((items || []).map(async (item) => {
-      const ocrData = item.ocr_extracted_data || {};
+      // Parse OCR data if it's a string (JSON stored in database)
+      let ocrData = item.ocr_extracted_data || {};
+      if (typeof ocrData === 'string') {
+        try {
+          ocrData = JSON.parse(ocrData);
+        } catch (e) {
+          console.error('Failed to parse OCR data:', e);
+          ocrData = {};
+        }
+      }
+      
+      // Debug: Log OCR data structure
+      console.log(`📋 Item ${item.id} OCR Data:`, {
+        hasBaseFreight: ocrData.baseFreight !== null && ocrData.baseFreight !== undefined,
+        baseFreight: ocrData.baseFreight,
+        hasTotalAmount: ocrData.totalAmount !== null && ocrData.totalAmount !== undefined,
+        totalAmount: ocrData.totalAmount,
+        hasChargeBreakup: !!ocrData.chargeBreakup,
+        chargeBreakupKeys: ocrData.chargeBreakup ? Object.keys(ocrData.chargeBreakup) : [],
+        hasCharges: Array.isArray(ocrData.charges) && ocrData.charges.length > 0,
+        chargesCount: ocrData.charges?.length || 0
+      });
       
       // Get journey if exists
       let journey = null;
@@ -1282,7 +1454,7 @@ app.get('/api/bulk-jobs/:jobId', async (req, res) => {
       if (item.journey_id) {
         const { data: journeyData } = await supabase
           .from('journeys')
-          .select('id, journey_number, load_id, vehicle_number, origin, destination, transporter_id')
+          .select('id, journey_number, load_id, vehicle_number, origin, destination, transporter_id, epod_status')
           .eq('id', item.journey_id)
           .single();
         
@@ -1298,10 +1470,10 @@ app.get('/api/bulk-jobs/:jobId', async (req, res) => {
           transporterName = transporter?.full_name || 'Unknown';
         }
 
-        // Get proforma
+        // Get proforma with ALL charge fields
         const { data: proformaData } = await supabase
           .from('proformas')
-          .select('base_freight, toll_charge, unloading_charge, total_amount')
+          .select('base_freight, toll_charge, unloading_charge, detention_charge, other_charges, gst_amount, total_amount')
           .eq('journey_id', journey.id)
           .limit(1)
           .single();
@@ -1322,6 +1494,7 @@ app.get('/api/bulk-jobs/:jobId', async (req, res) => {
         status: item.match_status || 'pending_review', // Use match_status as status (no separate status column)
         match_status: item.match_status,
         journey_id: journey?.id,
+        epod_status: journey?.epod_status || null,
         ocrData: {
           ...ocrData,
           // Include full nested structure if available
@@ -1334,95 +1507,151 @@ app.get('/api/bulk-jobs/:jobId', async (req, res) => {
           rawResponse: ocrData.rawResponse
         },
         contractedCost: proforma?.total_amount || null, // Use null if no proforma (not 0)
-        invoiceAmount: ocrData.totalAmount || null,
-        variance: proforma?.total_amount ? ((ocrData.totalAmount || 0) - proforma.total_amount) : null, // null if no contract to compare
+        // Try multiple sources for invoice amount
+        invoiceAmount: ocrData.totalAmount ?? 
+                       ocrData.chargeBreakup?.totalPayableAmount ?? 
+                       (ocrData.charges && Array.isArray(ocrData.charges) ? 
+                         ocrData.charges.reduce((sum, c) => sum + (c.amount || 0), ocrData.baseFreight || 0) : null) ?? 
+                       null,
+        variance: (() => {
+          const invoiceAmt = ocrData.totalAmount ?? ocrData.chargeBreakup?.totalPayableAmount ?? null;
+          return proforma?.total_amount && invoiceAmt !== null ? (invoiceAmt - proforma.total_amount) : null;
+        })(),
         charges: (() => {
           // Build charges array from ALL OCR charges + Base Freight
           const chargesArray = [];
+          const addedChargeTypes = new Set(); // To prevent duplicates
+          
+          // Helper to add charge if not already added
+          const addCharge = (id, type, contracted, invoice, variance) => {
+            const typeKey = type.toLowerCase();
+            if (!addedChargeTypes.has(typeKey)) {
+              chargesArray.push({ id, type, contracted, invoice, variance });
+              addedChargeTypes.add(typeKey);
+            }
+          };
           
           // 1. Base Freight (always first)
-          const invoiceBaseFreight = ocrData.baseFreight || 0;
+          // Try multiple sources for base freight
+          const invoiceBaseFreight = ocrData.baseFreight ?? 
+                                     ocrData.chargeBreakup?.baseFreight ?? 
+                                     (ocrData.charges && Array.isArray(ocrData.charges) ? 
+                                       ocrData.charges.find(c => c.type?.toLowerCase().includes('base'))?.amount : null) ?? 
+                                     0;
           const contractedBaseFreight = proforma?.base_freight || null;
-          chargesArray.push({
-            id: 'base',
-            type: 'Base Freight',
-            contracted: contractedBaseFreight,
-            invoice: invoiceBaseFreight,
-            variance: contractedBaseFreight !== null ? (invoiceBaseFreight - contractedBaseFreight) : null
-          });
           
-          // 2. Process all charges from OCR (Toll, Unloading, GST, etc.)
+          console.log(`💰 Base Freight mapping:`, {
+            ocrDataBaseFreight: ocrData.baseFreight,
+            chargeBreakupBaseFreight: ocrData.chargeBreakup?.baseFreight,
+            finalInvoiceBaseFreight: invoiceBaseFreight,
+            contractedBaseFreight: contractedBaseFreight
+          });
+          addCharge(
+            'base',
+            'Base Freight',
+            contractedBaseFreight,
+            invoiceBaseFreight,
+            contractedBaseFreight !== null ? (invoiceBaseFreight - contractedBaseFreight) : null
+          );
+          
+          // 2. Process charges from ocrData.chargeBreakup FIRST (more structured)
+          if (ocrData.chargeBreakup) {
+            const cb = ocrData.chargeBreakup;
+            
+            // Toll Charges
+            if (cb.tollCharges !== null && cb.tollCharges !== undefined) {
+              addCharge(
+                'toll',
+                'Toll Charges',
+                proforma?.toll_charge || null,
+                cb.tollCharges,
+                proforma?.toll_charge !== null && proforma?.toll_charge !== undefined ? (cb.tollCharges - proforma.toll_charge) : null
+              );
+            }
+            
+            // Unloading Charges
+            if (cb.unloadingCharges !== null && cb.unloadingCharges !== undefined) {
+              addCharge(
+                'unloading',
+                'Unloading Charges',
+                proforma?.unloading_charge || null,
+                cb.unloadingCharges,
+                proforma?.unloading_charge !== null && proforma?.unloading_charge !== undefined ? (cb.unloadingCharges - proforma.unloading_charge) : null
+              );
+            }
+            
+            // Other Add-on Charges
+            if (cb.otherAddOnCharges !== null && cb.otherAddOnCharges !== undefined) {
+              addCharge(
+                'other',
+                'Other Add-on Charges',
+                proforma?.other_charges || null,
+                cb.otherAddOnCharges,
+                proforma?.other_charges !== null && proforma?.other_charges !== undefined ? (cb.otherAddOnCharges - proforma.other_charges) : null
+              );
+            }
+            
+            // Handle GST split (SGST and CGST)
+            if (cb.sgst !== null && cb.sgst !== undefined) {
+              const contractedGst = proforma?.gst_amount || null;
+              addCharge(
+                'sgst',
+                'SGST',
+                contractedGst !== null ? (contractedGst / 2) : null,
+                cb.sgst,
+                contractedGst !== null ? (cb.sgst - (contractedGst / 2)) : null
+              );
+            }
+            
+            if (cb.cgst !== null && cb.cgst !== undefined) {
+              const contractedGst = proforma?.gst_amount || null;
+              addCharge(
+                'cgst',
+                'CGST',
+                contractedGst !== null ? (contractedGst / 2) : null,
+                cb.cgst,
+                contractedGst !== null ? (cb.cgst - (contractedGst / 2)) : null
+              );
+            }
+          }
+          
+          // 3. Process charges from ocrData.charges array (fallback for any charges not in chargeBreakup)
           if (ocrData.charges && Array.isArray(ocrData.charges)) {
             ocrData.charges.forEach((ocrCharge, index) => {
               const chargeType = ocrCharge.type || 'Unknown Charge';
               const invoiceAmount = ocrCharge.amount || 0;
+              const typeKey = chargeType.toLowerCase();
+              
+              // Skip if already added from chargeBreakup
+              if (addedChargeTypes.has(typeKey)) {
+                return;
+              }
               
               // Map OCR charge types to proforma fields
               let contractedAmount = null;
-              if (chargeType.toLowerCase().includes('toll')) {
+              if (typeKey.includes('toll')) {
                 contractedAmount = proforma?.toll_charge || null;
-              } else if (chargeType.toLowerCase().includes('unload')) {
+              } else if (typeKey.includes('unload')) {
                 contractedAmount = proforma?.unloading_charge || null;
-              } else if (chargeType.toLowerCase().includes('detention')) {
+              } else if (typeKey.includes('detention')) {
                 contractedAmount = proforma?.detention_charge || null;
-              } else if (chargeType.toLowerCase().includes('other')) {
+              } else if (typeKey.includes('other')) {
                 contractedAmount = proforma?.other_charges || null;
-              } else if (chargeType.toLowerCase().includes('gst') || chargeType.toLowerCase().includes('sgst') || chargeType.toLowerCase().includes('cgst')) {
-                // GST charges - check if proforma has gst_amount
-                // Note: GST might be split into SGST/CGST in OCR but single gst_amount in proforma
+              } else if (typeKey.includes('gst')) {
                 contractedAmount = proforma?.gst_amount || null;
               }
-              // For other charges (like SGST, CGST separately), contractedAmount stays null
               
-              chargesArray.push({
-                id: `charge-${index}`,
-                type: chargeType,
-                contracted: contractedAmount,
-                invoice: invoiceAmount,
-                variance: contractedAmount !== null ? (invoiceAmount - contractedAmount) : null
-              });
+              addCharge(
+                `charge-${index}`,
+                chargeType,
+                contractedAmount,
+                invoiceAmount,
+                contractedAmount !== null ? (invoiceAmount - contractedAmount) : null
+              );
             });
           }
           
-          // 3. Also check chargeBreakup for any missing charges (SGST, CGST might be there)
-          if (ocrData.chargeBreakup) {
-            const cb = ocrData.chargeBreakup;
-            
-            // Add SGST if not already in charges array
-            if (cb.sgst && !chargesArray.some(c => c.type.toLowerCase().includes('sgst'))) {
-              chargesArray.push({
-                id: 'sgst',
-                type: 'SGST',
-                contracted: proforma?.gst_amount ? (proforma.gst_amount / 2) : null, // Split GST if needed
-                invoice: cb.sgst,
-                variance: null // Will calculate if contracted exists
-              });
-            }
-            
-            // Add CGST if not already in charges array
-            if (cb.cgst && !chargesArray.some(c => c.type.toLowerCase().includes('cgst'))) {
-              chargesArray.push({
-                id: 'cgst',
-                type: 'CGST',
-                contracted: proforma?.gst_amount ? (proforma.gst_amount / 2) : null, // Split GST if needed
-                invoice: cb.cgst,
-                variance: null // Will calculate if contracted exists
-              });
-            }
-            
-            // Add Other Add-on Charges if not already included
-            if (cb.otherAddOnCharges && !chargesArray.some(c => c.type.toLowerCase().includes('other'))) {
-              chargesArray.push({
-                id: 'other',
-                type: 'Other Add-on Charges',
-                contracted: proforma?.other_charges || null,
-                invoice: cb.otherAddOnCharges,
-                variance: proforma?.other_charges !== null && proforma?.other_charges !== undefined ? (cb.otherAddOnCharges - proforma.other_charges) : null
-              });
-            }
-          }
-          
-          // Recalculate variances for charges that were set to null
+          // Ensure all variances are calculated if contracted exists
           chargesArray.forEach(charge => {
             if (charge.variance === null && charge.contracted !== null && charge.contracted !== undefined) {
               charge.variance = charge.invoice - charge.contracted;
@@ -1518,7 +1747,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: {
       supabase: !!process.env.SUPABASE_URL,
-      gemini: !!process.env.GEMINI_API_KEY,
+      openai: !!process.env.OPENAI_API_KEY,
     }
   });
 });
