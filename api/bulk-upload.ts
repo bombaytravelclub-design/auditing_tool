@@ -219,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Get file URL
         const { data: urlData } = supabase.storage
           .from('documents')
-          .getPublicUrl(`${storagePath}/${fileName}`);
+          .getPublicUrl(fullStoragePath);
 
         // Extract metadata using OCR (use appropriate function based on document type)
         let ocrResult: any;
@@ -313,7 +313,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         // Insert into bulk_job_items
-        const fullStoragePath = `${storagePath}/${fileName}`;
+        // fullStoragePath is already defined above (line 182)
         console.log(`📝 Inserting bulk_job_item for ${file.name}:`, {
           bulk_job_id: bulkJob.id,
           file_name: file.name,
