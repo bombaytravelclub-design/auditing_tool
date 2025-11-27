@@ -1,14 +1,16 @@
-// Google Gemini OCR Helper for Document Extraction
+// OpenAI OCR Helper for Document Extraction
 // Supports both POD and Invoice documents
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import type { PodOcrResult, InvoiceOcrResult } from '../../src/types/domain';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('Missing GEMINI_API_KEY environment variable');
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('Missing OPENAI_API_KEY environment variable');
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // ============================================================================
 // POD DOCUMENT OCR
@@ -25,59 +27,88 @@ export async function extractPodMetadata(
   fileType: string
 ): Promise<PodOcrResult> {
   try {
-    // Use Gemini 2.0 Flash for OCR processing (faster, better quota)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // POD prompt - LR Number is critical
+    const ocrPrompt = `You are extracting data from a POD (Proof of Delivery) document.
 
-    // Prepare prompt for POD extraction
-    const prompt = `Extract all relevant fields from this POD (Proof of Delivery) document.
+CRITICAL REQUIREMENT: Extract the LR Number (also called Journey Number, Trip ID, LR No, LR Number).
+This is the MOST IMPORTANT field. Look for it in headers, tables, or anywhere in the document.
+Common formats: LR20257713, LR-20257713, LR 20257713, or just the number 20257713.
 
-Read only what is present—no assumptions.
+Extract ALL fields you can find:
+1. LR Number / Journey Number / Trip ID / LR No (MANDATORY - search everywhere)
+2. Vehicle number / Registration number
+3. Load ID / LCU number
+4. Charges (if any)
+5. Total amount (if any)
 
-If the document contains multiple materials, capture every row accurately.
+Read only what is printed. Do not invent values. If LR Number is not visible, return null.
 
-Return extracted data in a structured list of fields and values. No extra commentary.
-
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
+Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 {
-  "journeyNumber": "string or null",
+  "journeyNumber": "extracted LR number or null",
   "vehicleNumber": "string or null",
   "loadId": "string or null",
-  "charges": [
-    {"type": "string", "amount": number}
-  ],
+  "charges": [{"type": "string", "amount": number}],
   "totalAmount": number or null,
   "confidence": 0.8
 }`;
 
-    // Convert buffer to base64 for Gemini
+    // Convert buffer to base64 data URL
     const base64File = fileBuffer.toString('base64');
+    const mimeType = fileType || 'application/pdf';
+    const imageDataUrl = `data:${mimeType};base64,${base64File}`;
 
-    // Call Gemini with vision
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64File,
-          mimeType: fileType,
+    // Call OpenAI Vision API (gpt-4o supports vision)
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text."
         },
-      },
-    ]);
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: ocrPrompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageDataUrl
+              }
+            }
+          ]
+        }
+      ],
+      temperature: 0,
+      response_format: { type: "json_object" }
+    });
 
-    const response = await result.response;
-    const content = response.text();
+    let content = completion.choices[0]?.message?.content || '{}';
+    const originalContent = content;
 
-    if (!content) {
-      throw new Error('No response from Gemini');
+    if (!content || content === '{}' || content.trim().length === 0) {
+      throw new Error('Empty response from OpenAI API');
     }
 
-    // Parse JSON response - Gemini may wrap in markdown
-    let cleanedContent = content.trim();
-    // Remove markdown code blocks if present
-    cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    // Remove any leading/trailing whitespace
-    cleanedContent = cleanedContent.trim();
+    // Clean JSON response - remove markdown code blocks
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    content = content.replace(/^\s+|\s+$/g, '');
 
-    const parsed = JSON.parse(cleanedContent);
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (parseError) {
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        throw parseError;
+      }
+    }
 
     // Transform charges array to match expected format
     const charges = parsed.charges && Array.isArray(parsed.charges) 
@@ -90,8 +121,8 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
       loadId: parsed.loadId || undefined,
       charges: charges,
       totalAmount: parsed.totalAmount || undefined,
-      confidence: parsed.confidence || 0.8, // Default confidence for Gemini
-      rawResponse: { content, parsed },
+      confidence: parsed.confidence || 0.8,
+      rawResponse: { content: originalContent, parsed },
     };
   } catch (error: any) {
     console.error('POD OCR Error:', error);
@@ -107,95 +138,154 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
 // ============================================================================
 
 /**
- * Extract financial data from Invoice document
+ * Extract metadata from Invoice document
  * @param fileBuffer - The file buffer (image or PDF)
  * @param fileType - MIME type of the file
- * @returns Extracted invoice data with confidence score
+ * @returns Extracted Invoice metadata with confidence score
  */
 export async function extractInvoiceMetadata(
   fileBuffer: Buffer,
   fileType: string
 ): Promise<InvoiceOcrResult> {
   try {
-    // Use Gemini Pro for OCR processing (supports vision via inline data)
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const ocrPrompt = `Extract the following information and return it as a JSON object:
 
-    // Prepare prompt for Invoice extraction
-    const prompt = `Extract all relevant fields from this freight INVOICE PDF.
+Invoice Details:
+- Transporter name
+- Consignor name  
+- Invoice No (look for "Invoice No" or "Invoice Number")
+- Invoice Date (format as YYYY-MM-DD)
+- LR No (look for "LR No" or "LR Number" - this is very important)
+- LCU No
+- Origin (city and state)
+- Destination (city and state)
 
-Read exactly what is present in the document. Do not assume or infer missing values.
+Charge Breakup:
+- Base Freight (as number, no commas)
+- Toll Charges (as number)
+- Unloading Charges (as number)
+- Other Add-on Charges (as number)
+- Subtotal Before Tax (as number)
+- SGST (as number)
+- CGST (as number)
+- Total Payable Amount (as number)
 
-Accurately capture table rows even if formatting is inconsistent. Preserve numbers as printed.
+Material Details:
+- Description
+- Quantity in kg (as number)
+- Packages
 
-Return the data in a clean and structured way with field names and values. No explanations.
-
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
+Return the data in this JSON format:
 {
-  "invoiceNumber": "string or null",
-  "invoiceDate": "YYYY-MM-DD or null",
-  "vehicleNumber": "string or null",
-  "baseFreight": number or null,
-  "detentionCharge": number or null,
-  "tollCharge": number or null,
-  "unloadingCharge": number or null,
-  "otherCharges": number or null,
-  "gstAmount": number or null,
-  "totalAmount": number or null,
-  "charges": [
-    {"type": "string", "amount": number}
-  ],
-  "confidence": 0.8
+  "invoiceDetails": {
+    "transporter": "...",
+    "consignor": "...",
+    "invoiceNo": "...",
+    "invoiceDate": "YYYY-MM-DD",
+    "lrNo": "...",
+    "lcuNo": "...",
+    "origin": "...",
+    "destination": "..."
+  },
+  "chargeBreakup": {
+    "baseFreight": 0,
+    "tollCharges": 0,
+    "unloadingCharges": 0,
+    "otherAddOnCharges": 0,
+    "subtotalBeforeTax": 0,
+    "sgst": 0,
+    "cgst": 0,
+    "totalPayableAmount": 0
+  },
+  "materialDetails": {
+    "description": "...",
+    "quantityKg": 0,
+    "packages": "..."
+  }
 }`;
 
-    // Convert buffer to base64 for Gemini
+    // Convert buffer to base64 data URL
     const base64File = fileBuffer.toString('base64');
+    const mimeType = fileType || 'application/pdf';
+    const imageDataUrl = `data:${mimeType};base64,${base64File}`;
 
-    // Call Gemini with vision
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64File,
-          mimeType: fileType,
+    // Call OpenAI Vision API
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an OCR assistant that extracts structured data from freight documents. Return only valid JSON, no markdown or additional text."
         },
-      },
-    ]);
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: ocrPrompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageDataUrl
+              }
+            }
+          ]
+        }
+      ],
+      temperature: 0,
+      response_format: { type: "json_object" }
+    });
 
-    const response = await result.response;
-    const content = response.text();
+    let content = completion.choices[0]?.message?.content || '{}';
+    const originalContent = content;
 
-    if (!content) {
-      throw new Error('No response from Gemini');
+    if (!content || content === '{}' || content.trim().length === 0) {
+      throw new Error('Empty response from OpenAI API');
     }
 
-    // Parse JSON response - Gemini may wrap in markdown
-    let cleanedContent = content.trim();
-    // Remove markdown code blocks if present
-    cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    // Remove any leading/trailing whitespace
-    cleanedContent = cleanedContent.trim();
+    // Clean JSON response
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    content = content.replace(/^\s+|\s+$/g, '');
 
-    const parsed = JSON.parse(cleanedContent);
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (parseError) {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        throw parseError;
+      }
+    }
 
-    // Transform charges array to match expected format
-    const charges = parsed.charges && Array.isArray(parsed.charges) 
-      ? parsed.charges 
-      : [];
+    // Extract from nested structure
+    const invoiceDetails = parsed.invoiceDetails || {};
+    const chargeBreakup = parsed.chargeBreakup || {};
+    const materialDetails = parsed.materialDetails || {};
+
+    // Build charges array from chargeBreakup
+    const charges = [];
+    if (chargeBreakup.tollCharges) charges.push({ type: 'Toll Charges', amount: chargeBreakup.tollCharges });
+    if (chargeBreakup.unloadingCharges) charges.push({ type: 'Unloading Charges', amount: chargeBreakup.unloadingCharges });
+    if (chargeBreakup.otherAddOnCharges) charges.push({ type: 'Other Add-on Charges', amount: chargeBreakup.otherAddOnCharges });
+    if (chargeBreakup.sgst) charges.push({ type: 'SGST', amount: chargeBreakup.sgst });
+    if (chargeBreakup.cgst) charges.push({ type: 'CGST', amount: chargeBreakup.cgst });
 
     return {
-      invoiceNumber: parsed.invoiceNumber || undefined,
-      invoiceDate: parsed.invoiceDate || undefined,
-      vehicleNumber: parsed.vehicleNumber || undefined,
-      baseFreight: parsed.baseFreight || undefined,
-      detentionCharge: parsed.detentionCharge || 0,
-      tollCharge: parsed.tollCharge || 0,
-      unloadingCharge: parsed.unloadingCharge || 0,
-      otherCharges: parsed.otherCharges || 0,
-      gstAmount: parsed.gstAmount || undefined,
-      totalAmount: parsed.totalAmount || undefined,
-      charges: charges,
-      confidence: parsed.confidence || 0.8, // Default confidence for Gemini
-      rawResponse: { content, parsed },
+      invoiceNumber: invoiceDetails.invoiceNo || parsed.invoiceNumber || undefined,
+      invoiceDate: invoiceDetails.invoiceDate || parsed.invoiceDate || undefined,
+      journeyNumber: invoiceDetails.lrNo || parsed.journeyNumber || undefined,
+      loadId: invoiceDetails.lcuNo || parsed.loadId || undefined,
+      baseFreight: chargeBreakup.baseFreight || parsed.baseFreight || undefined,
+      totalAmount: chargeBreakup.totalPayableAmount || parsed.totalAmount || undefined,
+      charges: charges.length > 0 ? charges : (parsed.charges || []),
+      confidence: parsed.confidence || 0.8,
+      rawResponse: { content: originalContent, parsed },
+      invoiceDetails: invoiceDetails,
+      chargeBreakup: chargeBreakup,
+      materialDetails: materialDetails,
     };
   } catch (error: any) {
     console.error('Invoice OCR Error:', error);
@@ -204,166 +294,4 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
       rawResponse: { error: error.message },
     };
   }
-}
-
-// ============================================================================
-// MATCHING HELPERS
-// ============================================================================
-
-/**
- * Match POD extracted data with journey
- * @param ocrResult - OCR extraction result
- * @param journey - Journey to match against
- * @returns Match result with details
- */
-export function matchPodWithJourney(
-  ocrResult: PodOcrResult,
-  journey: { journey_number: string; vehicle_number: string; load_id?: string }
-) {
-  const matches = {
-    journeyNumber: false,
-    vehicleNumber: false,
-    loadId: false,
-  };
-
-  let matchScore = 0;
-  const details: string[] = [];
-
-  // Normalize strings for comparison
-  const normalize = (str?: string) => str?.trim().toUpperCase().replace(/\s+/g, '') || '';
-
-  // Check journey number
-  if (ocrResult.journeyNumber && journey.journey_number) {
-    matches.journeyNumber = normalize(ocrResult.journeyNumber) === normalize(journey.journey_number);
-    if (matches.journeyNumber) {
-      matchScore += 0.4;
-      details.push('Journey number matched');
-    } else {
-      details.push(`Journey number mismatch: ${ocrResult.journeyNumber} vs ${journey.journey_number}`);
-    }
-  }
-
-  // Check vehicle number
-  if (ocrResult.vehicleNumber && journey.vehicle_number) {
-    matches.vehicleNumber = normalize(ocrResult.vehicleNumber) === normalize(journey.vehicle_number);
-    if (matches.vehicleNumber) {
-      matchScore += 0.4;
-      details.push('Vehicle number matched');
-    } else {
-      details.push(`Vehicle number mismatch: ${ocrResult.vehicleNumber} vs ${journey.vehicle_number}`);
-    }
-  }
-
-  // Check load ID (optional)
-  if (ocrResult.loadId && journey.load_id) {
-    matches.loadId = normalize(ocrResult.loadId) === normalize(journey.load_id);
-    if (matches.loadId) {
-      matchScore += 0.2;
-      details.push('Load ID matched');
-    } else {
-      details.push(`Load ID mismatch: ${ocrResult.loadId} vs ${journey.load_id}`);
-    }
-  }
-
-  const isMatch = matchScore >= 0.4; // At least one major field must match
-  const status = isMatch ? 'matched' : 'mismatch';
-
-  return {
-    isMatch,
-    status,
-    matchScore,
-    matches,
-    details,
-  };
-}
-
-/**
- * Match Invoice extracted data with proforma
- * @param ocrResult - OCR extraction result
- * @param proforma - Proforma to match against
- * @returns Match result with variance details
- */
-export function matchInvoiceWithProforma(
-  ocrResult: InvoiceOcrResult,
-  proforma: {
-    base_freight: number;
-    detention_charge: number;
-    toll_charge: number;
-    unloading_charge: number;
-    other_charges: number;
-    gst_amount: number;
-    total_amount: number;
-  }
-) {
-  const variances = {
-    baseFreight: 0,
-    detentionCharge: 0,
-    tollCharge: 0,
-    unloadingCharge: 0,
-    otherCharges: 0,
-    gstAmount: 0,
-    totalAmount: 0,
-  };
-
-  const details: string[] = [];
-
-  // Calculate variances
-  if (ocrResult.baseFreight !== undefined) {
-    variances.baseFreight = ocrResult.baseFreight - proforma.base_freight;
-    if (variances.baseFreight !== 0) {
-      details.push(`Base freight variance: ₹${variances.baseFreight.toFixed(2)}`);
-    }
-  }
-
-  if (ocrResult.detentionCharge !== undefined) {
-    variances.detentionCharge = ocrResult.detentionCharge - proforma.detention_charge;
-  }
-
-  if (ocrResult.tollCharge !== undefined) {
-    variances.tollCharge = ocrResult.tollCharge - proforma.toll_charge;
-  }
-
-  if (ocrResult.unloadingCharge !== undefined) {
-    variances.unloadingCharge = ocrResult.unloadingCharge - proforma.unloading_charge;
-  }
-
-  if (ocrResult.otherCharges !== undefined) {
-    variances.otherCharges = ocrResult.otherCharges - proforma.other_charges;
-  }
-
-  if (ocrResult.gstAmount !== undefined) {
-    variances.gstAmount = ocrResult.gstAmount - proforma.gst_amount;
-  }
-
-  if (ocrResult.totalAmount !== undefined) {
-    variances.totalAmount = ocrResult.totalAmount - proforma.total_amount;
-    if (variances.totalAmount !== 0) {
-      details.push(`Total amount variance: ₹${variances.totalAmount.toFixed(2)}`);
-    }
-  }
-
-  // Calculate total variance and percentage
-  const totalVariance = variances.totalAmount;
-  const variancePercentage = proforma.total_amount > 0
-    ? (totalVariance / proforma.total_amount) * 100
-    : 0;
-
-  // Determine match status
-  let matchStatus = 'exact_match';
-  if (Math.abs(variances.baseFreight) > 0.01 && Math.abs(variances.totalAmount) < 0.01) {
-    matchStatus = 'base_freight_diff';
-  } else if (Math.abs(variances.totalAmount) > 0.01) {
-    matchStatus = 'charges_diff';
-  }
-
-  const isMatch = matchStatus === 'exact_match';
-
-  return {
-    isMatch,
-    matchStatus,
-    variances,
-    totalVariance,
-    variancePercentage,
-    details,
-  };
 }
