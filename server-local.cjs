@@ -658,15 +658,26 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
           
           console.log(`   Final MIME type: ${normalizedMimeType}`);
           
+          // Final validation before creating data URL
+          if (!normalizedMimeType || !normalizedMimeType.startsWith('image/')) {
+            throw new Error(`Cannot process file: Invalid or unsupported MIME type "${normalizedMimeType}". Only image formats (PNG, JPEG, GIF, WebP) are supported.`);
+          }
+          
           // Convert buffer to base64 data URL
           const base64File = fileBuffer.toString('base64');
           const imageDataUrl = `data:${normalizedMimeType};base64,${base64File}`;
           
+          // Validate data URL format
+          if (!imageDataUrl.startsWith(`data:${normalizedMimeType};base64,`)) {
+            throw new Error(`Failed to create valid data URL for MIME type: ${normalizedMimeType}`);
+          }
+          
           // Call OpenAI Vision API (gpt-4o supports vision)
           console.log(`📤 Calling OpenAI API for file: ${file.name}`);
-          console.log(`   Original MIME type: ${rawMimeType}`);
+          console.log(`   Detected MIME type: ${rawMimeType}`);
           console.log(`   Normalized MIME type: ${normalizedMimeType}`);
           console.log(`   Base64 length: ${base64File.length}`);
+          console.log(`   Data URL prefix: data:${normalizedMimeType};base64,...`);
           
           let completion;
           try {
