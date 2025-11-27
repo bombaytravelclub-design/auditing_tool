@@ -236,31 +236,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (isMatched) matchedCount++;
         if (needsReview) needsReviewCount++;
 
+        // Check if OCR failed (returns error object)
+        if (ocrResult.rawResponse?.error) {
+          console.error(`❌ OCR returned error for ${file.name}:`, ocrResult.rawResponse.error);
+          processedItems.push({
+            fileName: file.name,
+            status: 'skipped',
+            reason: `OCR failed: ${ocrResult.rawResponse.error}`,
+          });
+          continue;
+        }
+
         // Prepare OCR extracted data for storage
         const ocrExtractedData: any = {
           journeyNumber: ocrResult.journeyNumber,
           vehicleNumber: ocrResult.vehicleNumber,
           loadId: ocrResult.loadId,
           confidence: ocrResult.confidence,
+          rawResponse: ocrResult.rawResponse,
+        };
+
+        // Determine match status (must match enum: 'pending_review', 'matched', 'mismatch', 'accepted', 'rejected', 'skipped')
+        let matchStatus: 'pending_review' | 'matched' | 'mismatch' | 'skipped';
+        if (isMatched) {
+          matchStatus = 'matched';
+        } else if (needsReview) {
+          matchStatus = 'mismatch'; // 'needs_review' is not in enum, use 'mismatch'
+        } else {
+          matchStatus = 'skipped';
+        }
+
+        // Prepare match_details JSONB
+        const matchDetails = {
+          isMatched,
+          matchScore: isMatched ? 100 : needsReview ? 50 : 0,
+          matchReason: isMatched 
+            ? `LR Number matched: ${ocrResult.journeyNumber} = ${matchedJourney?.journey_number}`
+            : needsReview 
+              ? 'Needs review - LR Number found but no match'
+              : 'No LR Number found in OCR',
+          matchDetails: isMatched ? [`LR Number matched: ${ocrResult.journeyNumber}`] : [],
         };
 
         // Insert into bulk_job_items
+        const fullStoragePath = `${storagePath}/${fileName}`;
+        console.log(`📝 Inserting bulk_job_item for ${file.name}:`, {
+          bulk_job_id: bulkJob.id,
+          file_name: file.name,
+          storage_path: storagePath,
+          match_status: matchStatus,
+          journey_id: matchedJourney?.id || null,
+        });
+
         const { data: jobItem, error: itemError } = await supabase
           .from('bulk_job_items')
           .insert({
             bulk_job_id: bulkJob.id,
             file_name: file.name,
-            file_url: urlData?.publicUrl,
+            storage_path: fullStoragePath, // Use storage_path, not file_url
             journey_id: matchedJourney?.id || null,
             ocr_extracted_data: ocrExtractedData,
-            match_status: isMatched ? 'matched' : needsReview ? 'needs_review' : 'skipped',
-            match_score: isMatched ? 100 : needsReview ? 50 : 0,
-            match_reason: isMatched 
-              ? `LR Number matched: ${ocrResult.journeyNumber} = ${matchedJourney?.journey_number}`
-              : needsReview 
-                ? 'Needs review - LR Number found but no match'
-                : 'No LR Number found in OCR',
-            status: 'pending_review',
+            ocr_confidence: ocrResult.confidence || null,
+            match_status: matchStatus, // Use correct enum value
+            match_details: matchDetails, // Store match details in JSONB
           })
           .select()
           .single();
