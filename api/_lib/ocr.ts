@@ -12,6 +12,20 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// Validate and normalize MIME type for images
+function normalizeImageMimeType(mimeType: string): string {
+  const validImageTypes: Record<string, string> = {
+    'image/png': 'image/png',
+    'image/jpeg': 'image/jpeg',
+    'image/jpg': 'image/jpeg',
+    'image/gif': 'image/gif',
+    'image/webp': 'image/webp',
+  };
+  
+  const normalized = mimeType.toLowerCase().trim();
+  return validImageTypes[normalized] || 'image/png'; // Default to PNG
+}
+
 // ============================================================================
 // POD DOCUMENT OCR
 // ============================================================================
@@ -53,12 +67,24 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
   "confidence": 0.8
 }`;
 
-    // Convert buffer to base64 data URL
+    // Detect file type and normalize MIME type
+    const rawMimeType = fileType || 'image/png';
+    const isPdf = rawMimeType === 'application/pdf' || fileBuffer.slice(0, 4).toString() === '%PDF';
+    
+    if (isPdf) {
+      throw new Error('PDF files are not supported. Please convert PDF to image (PNG/JPEG) before uploading.');
+    }
+    
+    // Image: Use Vision API with normalized MIME type
+    console.log('🖼️ Image detected, using Vision API...');
+    const normalizedMimeType = normalizeImageMimeType(rawMimeType);
+    console.log(`   Original MIME type: ${rawMimeType}`);
+    console.log(`   Normalized MIME type: ${normalizedMimeType}`);
+    
     const base64File = fileBuffer.toString('base64');
-    const mimeType = fileType || 'application/pdf';
-    const imageDataUrl = `data:${mimeType};base64,${base64File}`;
+    const imageDataUrl = `data:${normalizedMimeType};base64,${base64File}`;
+    console.log(`   Data URL prefix: data:${normalizedMimeType};base64,...`);
 
-    // Call OpenAI Vision API (gpt-4o supports vision)
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -204,12 +230,24 @@ Return the data in this JSON format:
   }
 }`;
 
-    // Convert buffer to base64 data URL
+    // Detect file type and normalize MIME type
+    const rawMimeType = fileType || 'image/png';
+    const isPdf = rawMimeType === 'application/pdf' || fileBuffer.slice(0, 4).toString() === '%PDF';
+    
+    if (isPdf) {
+      throw new Error('PDF files are not supported. Please convert PDF to image (PNG/JPEG) before uploading.');
+    }
+    
+    // Image: Use Vision API with normalized MIME type
+    console.log('🖼️ Image detected, using Vision API...');
+    const normalizedMimeType = normalizeImageMimeType(rawMimeType);
+    console.log(`   Original MIME type: ${rawMimeType}`);
+    console.log(`   Normalized MIME type: ${normalizedMimeType}`);
+    
     const base64File = fileBuffer.toString('base64');
-    const mimeType = fileType || 'application/pdf';
-    const imageDataUrl = `data:${mimeType};base64,${base64File}`;
+    const imageDataUrl = `data:${normalizedMimeType};base64,${base64File}`;
+    console.log(`   Data URL prefix: data:${normalizedMimeType};base64,...`);
 
-    // Call OpenAI Vision API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

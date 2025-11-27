@@ -144,13 +144,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Decode base64 file data
         const fileBuffer = Buffer.from(file.data, 'base64');
         
+        // Detect file type from buffer or use provided type
+        let detectedMimeType = file.type;
+        if (!detectedMimeType || detectedMimeType === 'application/octet-stream') {
+          // Try to detect from buffer
+          const header = fileBuffer.slice(0, 4).toString();
+          if (header === '%PDF') {
+            detectedMimeType = 'application/pdf';
+          } else if (fileBuffer.slice(0, 2).toString('hex') === 'ffd8') {
+            detectedMimeType = 'image/jpeg';
+          } else if (fileBuffer.slice(0, 8).toString('hex') === '89504e470d0a1a0a') {
+            detectedMimeType = 'image/png';
+          } else {
+            detectedMimeType = 'image/png'; // Default fallback
+          }
+        }
+        
+        console.log(`📄 File: ${file.name}, Detected MIME type: ${detectedMimeType}`);
+        
         // Upload to Supabase Storage
         const storagePath = type.toLowerCase() === 'invoice' ? 'invoice' : 'pod';
         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('documents')
           .upload(`${storagePath}/${fileName}`, fileBuffer, {
-            contentType: file.type,
+            contentType: detectedMimeType,
             upsert: false,
           });
 
@@ -174,7 +192,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           if (type.toLowerCase() === 'invoice') {
             console.log(`📄 Extracting invoice metadata for ${file.name}...`);
-            ocrResult = await extractInvoiceMetadata(fileBuffer, file.type);
+            ocrResult = await extractInvoiceMetadata(fileBuffer, detectedMimeType);
             // Normalize invoice OCR result to match POD format for matching
             ocrResult = {
               journeyNumber: ocrResult.journeyNumber || ocrResult.invoiceDetails?.lrNo,
@@ -187,7 +205,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             };
           } else {
             console.log(`📄 Extracting POD metadata for ${file.name}...`);
-            ocrResult = await extractPodMetadata(fileBuffer, file.type);
+            ocrResult = await extractPodMetadata(fileBuffer, detectedMimeType);
           }
           
           console.log(`📄 OCR Result for ${file.name}:`, {
