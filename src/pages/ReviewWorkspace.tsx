@@ -222,12 +222,11 @@ const ReviewWorkspace = () => {
     return (hasJourney !== null && hasJourney !== undefined) || matchStatus === 'matched';
   });
 
-  // Needs Review: Items where NO journey was matched (journey_id is null) AND match_status is not 'skipped'
-  // CRITERIA: If journey_id is null/undefined AND match_status !== 'skipped' = Needs Review tab
+  // Needs Review: Items where match_status is 'mismatch' (not matched, not skipped)
+  // CRITERIA: match_status === 'mismatch' = Needs Review tab
   const needsReviewData = allReviewData.filter((item) => {
-    const hasJourney = item.journey_id || item.journeyId;
-    const matchStatus = item.match_status || item.matchStatus;
-    return (!hasJourney || hasJourney === null || hasJourney === undefined) && matchStatus !== 'skipped';
+    const matchStatus = item.match_status || item.matchStatus || item.status;
+    return matchStatus === 'mismatch';
   });
 
   // Skipped: Items where match_status is 'skipped'
