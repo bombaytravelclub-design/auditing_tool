@@ -199,16 +199,31 @@ const ReviewWorkspace = () => {
   const allReviewData = Array.isArray(reviewData) ? reviewData : [];
 
   // SUMMARY_PAGE_DATA - Frontend debug logging
-  console.log('SUMMARY_PAGE_DATA', { items: allReviewData });
-
-  // Summary: Filter items to show matched and needs_review items
-  // Make filter robust - check multiple field names and values
-  const summaryItems = allReviewData.filter((item) => {
-    const matchStatus = item.match_status || item.matchStatus || item.status;
-    return ['matched', 'mismatch', 'needs_review'].includes(matchStatus);
+  console.log('SUMMARY_PAGE_DATA', { 
+    items: allReviewData,
+    itemsCount: allReviewData.length,
+    allItems: allReviewData.map(item => ({
+      id: item.id,
+      file_name: item.file_name,
+      match_status: item.match_status,
+      matchStatus: item.matchStatus,
+      status: item.status,
+    })),
   });
 
-  console.log('SUMMARY_FILTERED_ITEMS', { summaryItems });
+  // Summary: Show ALL items (including skipped) - user wants to see everything
+  // Changed: Always show all items in Summary tab, regardless of match status
+  const summaryItems = allReviewData; // Show ALL items always
+
+  console.log('SUMMARY_FILTERED_ITEMS', { 
+    summaryItems,
+    summaryItemsCount: summaryItems.length,
+    summaryItemsMatchStatus: summaryItems.map(item => ({
+      id: item.id,
+      file_name: item.file_name,
+      match_status: item.match_status || item.matchStatus || item.status,
+    })),
+  });
 
   // Use summaryItems for Summary tab
   const summaryData = summaryItems;
